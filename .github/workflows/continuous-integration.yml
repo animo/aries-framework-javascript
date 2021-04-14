@@ -97,6 +97,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '12.x'
+          registry-url: 'https://registry.npmjs.org'
 
       # https://github.com/yarnpkg/yarn/issues/6617#issuecomment-436222106
       - name: Prepend Node path
@@ -110,7 +111,7 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: yarn release patch --preRelease=unstable -VV
 
       # On manual workflow dispatch release stable version
@@ -118,5 +119,5 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: yarn release ${{ github.event.inputs.releaseType }} -VV
