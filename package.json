@@ -69,7 +69,7 @@
   },
   "release-it": {
     "github": {
-      "release": true
+      "release": false
     },
     "npm": {
       "skipChecks": true
