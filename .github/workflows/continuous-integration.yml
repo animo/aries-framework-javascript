@@ -112,7 +112,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-        run: yarn release patch --preRelease=unstable -VV
+        run: npm run release patch -- --preRelease=unstable -VV
 
       # On manual workflow dispatch release stable version
       - name: Release Stable
@@ -120,4 +120,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: yarn release ${{ github.event.inputs.releaseType }} -VV
+        run: yarn run release ${{ github.event.inputs.releaseType }} -- -VV
