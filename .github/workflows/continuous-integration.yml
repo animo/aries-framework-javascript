@@ -17,69 +17,69 @@ env:
   GENESIS_TXN_PATH: network/genesis/local-genesis.txn
 
 jobs:
-  integration-test:
-    runs-on: ubuntu-20.04
-    name: Integration Tests
-    steps:
-      - name: Checkout aries-framework-javascript
-        uses: actions/checkout@v2
+  # integration-test:
+  #   runs-on: ubuntu-20.04
+  #   name: Integration Tests
+  #   steps:
+  #     - name: Checkout aries-framework-javascript
+  #       uses: actions/checkout@v2
 
-      - name: Get docker cache
-        uses: satackey/action-docker-layer-caching@v0.0.11
+  #     - name: Get docker cache
+  #       uses: satackey/action-docker-layer-caching@v0.0.11
 
-      - name: Start indy pool
-        run: |
-          docker build -f network/indy-pool.dockerfile -t indy-pool .
-          docker run -d --name indy-pool -p 9701-9708:9701-9708 indy-pool
-          docker exec indy-pool indy-cli-setup
+  #     - name: Start indy pool
+  #       run: |
+  #         docker build -f network/indy-pool.dockerfile -t indy-pool .
+  #         docker run -d --name indy-pool -p 9701-9708:9701-9708 indy-pool
+  #         docker exec indy-pool indy-cli-setup
 
-      - name: Register DID on ledger
-        run: docker exec indy-pool add-did-from-seed "${TEST_AGENT_PUBLIC_DID_SEED}"
+  #     - name: Register DID on ledger
+  #       run: docker exec indy-pool add-did-from-seed "${TEST_AGENT_PUBLIC_DID_SEED}"
 
-      - name: Build framework docker image
-        run: docker build -t aries-framework-javascript .
+  #     - name: Build framework docker image
+  #       run: docker build -t aries-framework-javascript .
 
-      - name: Run lint and format validation
-        run: docker run aries-framework-javascript yarn validate
+  #     - name: Run lint and format validation
+  #       run: docker run aries-framework-javascript yarn validate
 
-      - name: Start mediator agents
-        run: docker-compose -f docker/docker-compose-mediators.yml up -d
+  #     - name: Start mediator agents
+  #       run: docker-compose -f docker/docker-compose-mediators.yml up -d
 
-      - name: Run tests
-        run: >-
-          docker run
-          --network host
-          --name framework-jest-tests
-          --env TEST_AGENT_PUBLIC_DID_SEED=${TEST_AGENT_PUBLIC_DID_SEED}
-          --env GENESIS_TXN_PATH=${GENESIS_TXN_PATH}
-          aries-framework-javascript
-          yarn test --coverage
+  #     - name: Run tests
+  #       run: >-
+  #         docker run
+  #         --network host
+  #         --name framework-jest-tests
+  #         --env TEST_AGENT_PUBLIC_DID_SEED=${TEST_AGENT_PUBLIC_DID_SEED}
+  #         --env GENESIS_TXN_PATH=${GENESIS_TXN_PATH}
+  #         aries-framework-javascript
+  #         yarn test --coverage
 
-      - name: Export logs
-        if: always()
-        run: |
-          mkdir logs
-          docker cp alice-mediator:/www/logs.txt ./logs/alice-mediator.txt
-          docker cp bob-mediator:/www/logs.txt ./logs/bob-mediator.txt
-          docker cp framework-jest-tests:/www/logs.txt ./logs/jest.txt
+  #     - name: Export logs
+  #       if: always()
+  #       run: |
+  #         mkdir logs
+  #         docker cp alice-mediator:/www/logs.txt ./logs/alice-mediator.txt
+  #         docker cp bob-mediator:/www/logs.txt ./logs/bob-mediator.txt
+  #         docker cp framework-jest-tests:/www/logs.txt ./logs/jest.txt
 
-      - name: Upload docker logs
-        uses: actions/upload-artifact@v1
-        if: always()
-        with:
-          name: docker-logs
-          path: logs
+  #     - name: Upload docker logs
+  #       uses: actions/upload-artifact@v1
+  #       if: always()
+  #       with:
+  #         name: docker-logs
+  #         path: logs
 
-      - name: Export test coverage
-        if: always()
-        run: docker cp framework-jest-tests:/www/coverage ./
-      - uses: codecov/codecov-action@v1
-        if: always()
+  #     - name: Export test coverage
+  #       if: always()
+  #       run: docker cp framework-jest-tests:/www/coverage ./
+  #     - uses: codecov/codecov-action@v1
+  #       if: always()
 
   release:
     runs-on: ubuntu-20.04
     name: Release
-    needs: [integration-test]
+    # needs: [integration-test]
     # Only run on push or workflow dispatch to main branch
     if: (github.ref == 'refs/heads/main') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
