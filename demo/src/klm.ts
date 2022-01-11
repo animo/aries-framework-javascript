@@ -6,8 +6,7 @@ import { Cred, CredDef, Schema } from 'indy-sdk-react-native';
 import { BaseAgent } from './base_agent';
 import { JsonEncoder } from '@aries-framework/core/src/utils/JsonEncoder';
 import { Color, Output } from './output_class';
-import { uuid } from '@aries-framework/core/src/utils/uuid';
-import { restart } from './restart';
+import { uuid } from '@aries-framework/core/build/utils/uuid';
 
 enum options {
   Connection = "setup connection",
@@ -31,25 +30,13 @@ const ui = new inquirer.ui.BottomBar();
    *       - KLM.receiveInvitationUrl
    */
   
-   class KLM extends BaseAgent {
+  export class KLM extends BaseAgent {
     connectionRecordId?: string
     credentialDefinition?: CredDef
   
     constructor(port: number, name: string) {
       super(port, name)
       super.initializeAgent() // this is not awaited..
-      this.proofProposalListener()
-    }
-
-    private proofProposalListener() {
-      this.agent.events.on(ProofEventTypes.ProofStateChanged,
-      async ({ payload }: ProofStateChangedEvent) => {
-        if (payload.proofRecord.state !== ProofState.ProposalReceived) {
-          return
-        }
-        await this.agent.proofs.acceptProposal(payload.proofRecord.id)
-        console.log(`${Color.green}\nProof accepted!\n${Color.reset}`);
-      })
     }
 
     private async getConnectionRecord() {
@@ -67,6 +54,7 @@ const ui = new inquirer.ui.BottomBar();
         invitationJson = JsonEncoder.fromBase64(invitationJson)
       } catch(e){
         console.log(`${Color.green}\nIt looks like your invitation link is not correctly formatted?\n${Color.reset}`)
+        //misschien moet dit naar de inquirer?
         return
       }
 
@@ -81,7 +69,6 @@ const ui = new inquirer.ui.BottomBar();
     }
 
     async acceptConnection(invitation_url: string) {
-      // first we would need an prompt to get the invitation url
       let connectionRecord = await this.receiveConnectionRequest(invitation_url)
       this.connectionRecordId = await this.waitForConnection(connectionRecord)
     }
@@ -149,7 +136,6 @@ const ui = new inquirer.ui.BottomBar();
     }
   
     async restart() {
-      await restart(this.agent)
       await this.agent.shutdown()
       //memory leak?
       runKlm()

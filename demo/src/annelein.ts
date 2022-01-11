@@ -1,44 +1,19 @@
 import { CredentialEventTypes, CredentialState, CredentialStateChangedEvent, PresentationPreview, PresentationPreviewAttribute, ProofEventTypes, ProofState, ProofStateChangedEvent } from '@aries-framework/core'
 import inquirer from 'inquirer'
-import { restart } from './restart';
 import { ConnectionRecord } from '@aries-framework/core';
 import { BaseAgent } from './base_agent';
 import { clear } from 'console';
 import figlet from 'figlet';
 import { Color, Output } from './output_class';
 
-const ui = new inquirer.ui.BottomBar();
-
-enum options {
-  Connection = "setup connection",
-  Proof = "propose proof",
-  Message = "send message",
-  Exit = "exit",
-  Restart = "restart"
-}
-
-class Annelein extends BaseAgent {
+export class Annelein extends BaseAgent {
   connectionRecordId?: string
   credDef: string
   
   constructor(port: number, name: string) {
     super(port, name)
     super.initializeAgent() // this is not awaited..
-    this.credentialOfferListener()
     this.credDef = '7KuDTpQh3GJ7Gp6kErpWvM:3:CL:115269:latest'
-  }
-
-  private async credentialOfferListener() {
-    this.agent.events.on(
-      CredentialEventTypes.CredentialStateChanged,
-      async ({ payload }: CredentialStateChangedEvent) => {
-        if (payload.credentialRecord.state !== CredentialState.OfferReceived){
-          return
-        }
-        // open yes/no option in prompt
-        // or maybe return something else first to start the prompt
-      }
-    )
   }
 
   private async proposalSentListener () {
@@ -107,6 +82,7 @@ class Annelein extends BaseAgent {
   }
 
   async sendProofProposal () {
+    this.proposalSentListener()
     const connectionRecord = await this.getConnectionRecord()
     const presentationPreview = await this.newPresentationPreview()
     await this.agent.proofs.proposeProof(connectionRecord.id, presentationPreview)
@@ -123,7 +99,6 @@ class Annelein extends BaseAgent {
   }
 
   async restart() {
-    await restart(this.agent)
     await this.agent.shutdown()
     //memory leak?
     runAnnelein()
