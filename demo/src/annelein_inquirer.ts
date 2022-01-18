@@ -6,9 +6,8 @@ import { BaseInquirer } from "./base_inquirer"
 import { Listener } from "./listener";
 import { Title } from "./output_class";
 
-export enum PromptOptions {
+enum PromptOptions {
     Connection = "setup connection",
-    Proof = "propose proof",
     Message = "send message",
     Exit = "exit",
     Restart = "restart"
@@ -41,18 +40,20 @@ export class AnneleinInquirer extends BaseInquirer{
       if (this.listener.on === true){
         return
       }
-      if (choice.options == PromptOptions.Connection){
+      switch(choice.options){
+        case PromptOptions.Connection:
           await this.connection()
-      } else if (choice.options == PromptOptions.Proof){
-          await this.proof()
-      } else if (choice.options == PromptOptions.Message){
+          break
+        case PromptOptions.Message:
           await this.message()
-      } else if (choice.options == PromptOptions.Exit){
+          break
+        case PromptOptions.Exit:
           await this.exit()
-      } else if (choice.options == PromptOptions.Restart){
+          break
+        case PromptOptions.Restart:
           await this.restart()
           return
-      }
+    }
       this.processAnswer()
     }
 
@@ -65,14 +66,19 @@ export class AnneleinInquirer extends BaseInquirer{
       }
     }
 
+    async acceptProofRequest(payload: any) {
+      const confirm = await inquirer.prompt([this.inquireConfirmation(Title.proofRequestTitle)])
+      if (confirm.options === 'no'){
+        return
+      } else if (confirm.options === 'yes'){
+        await this.annelein.acceptProofRequest(payload)
+      }
+    }
+
     async connection() {
       await this.annelein.setupConnection()
       this.listener.credentialOfferListener(this.annelein, this)
-    }
-
-    async proof() {
-      this.listener.proposalSentListener(this.annelein)
-      await this.annelein.sendProofProposal()
+      this.listener.proofRequestListener(this.annelein, this)
     }
 
     async message() {

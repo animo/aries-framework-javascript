@@ -49,18 +49,6 @@ export class Listener{
         )
     }
 
-    proposalSentListener(annelein: Annelein) {
-      annelein.agent.events.on(
-        ProofEventTypes.ProofStateChanged,
-        async ({ payload }: ProofStateChangedEvent) => {
-          if (payload.proofRecord.state === ProofState.ProposalSent) {
-            this.ui.updateBottomBar(`${Color.green}\nProposal sent!\n${Color.reset}`);
-          }
-          return 
-        }
-      )
-    }
-
     messageListener(agent: Agent, name: string) {
       agent.events.on(BasicMessageEventTypes.BasicMessageStateChanged,
         async (event: BasicMessageStateChangedEvent) => {
@@ -70,24 +58,23 @@ export class Listener{
         return
       })
     }
-
-    private async newProofPrompt(payload: any, klmInquirer: KlmInquirer) {
+  
+    private async newProofRequestPrompt(payload: any, anneleinInquirer: AnneleinInquirer) {
       this.turnListenerOn()
-      await klmInquirer.proofProposalPrompt(payload)
+      await anneleinInquirer.acceptProofRequest(payload)
       this.turnListenerOff()
-      klmInquirer.processAnswer()
+      anneleinInquirer.processAnswer()
     }
 
-    proofProposalListener(klm: KLM, klmInquirer: KlmInquirer) {
-      klm.agent.events.on(ProofEventTypes.ProofStateChanged,
+    proofRequestListener(annelein: Annelein, anneleinInquirer: AnneleinInquirer) {
+      annelein.agent.events.on(
+        ProofEventTypes.ProofStateChanged,
         async ({ payload }: ProofStateChangedEvent) => {
-          if (payload.proofRecord.state === ProofState.ProposalReceived) {
-            await this.newProofPrompt(payload, klmInquirer)
+          if (payload.proofRecord.state === ProofState.RequestReceived){
+              await this.newProofRequestPrompt(payload, anneleinInquirer)
           }
           return
         }
       )
-    }
-
-      
+  }
 }

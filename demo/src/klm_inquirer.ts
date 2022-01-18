@@ -8,13 +8,14 @@ import { Listener } from './listener';
 import { Title } from './output_class';
 
 
-  export enum PromptOptions {
-    Connection = "setup connection",
-    Credential = "offer credential",
-    Message = "send message",
-    Exit = "exit",
-    Restart = "restart"
-  }
+enum PromptOptions {
+  Connection = "setup connection",
+  Credential = "offer credential",
+  Proof = "request proof",
+  Message = "send message",
+  Exit = "exit",
+  Restart = "restart"
+}
 
 export class KlmInquirer extends BaseInquirer{
     klm: KLM
@@ -36,25 +37,6 @@ export class KlmInquirer extends BaseInquirer{
 
     async getPromptChoice(){
       const prompt = inquirer.prompt([this.inquireOptions(this.promptOptionsString)]);
-  
-      // const timeoutPromise = new Promise(resolve => {
-      //   this.permissionTimeout = setInterval(() => {
-      //     if (this.listenerOn === true){
-      //       resolve(false)
-      //     }
-      //   }, 0.1 * 1000);
-      // });
-  
-      // const promise = (async () => {
-      //   const optIn = await prompt;
-      //   if (this.permissionTimeout){
-      //     clearInterval(this.permissionTimeout)
-      //   }
-      //   return optIn;
-      // })();
-  
-      // // Return the result of the prompt if it finishes first otherwise default to the timeout's value.
-      // return Promise.race([promise, timeoutPromise]);
       return prompt
     }
 
@@ -63,39 +45,41 @@ export class KlmInquirer extends BaseInquirer{
       if (this.listener.on === true) {
         return
       }
-      if (choice.options == PromptOptions.Connection){
+      switch(choice.options){
+        case PromptOptions.Connection:
           await this.connection()
-      } else if (choice.options == PromptOptions.Credential){
+          break
+        case PromptOptions.Credential:
           await this.credential()
-      } else if (choice.options == PromptOptions.Message){
+          break
+        case PromptOptions.Proof:
+          await this.proof()
+          break
+        case PromptOptions.Message:
           await this.message()
-      } else if (choice.options == PromptOptions.Exit){
+          break
+        case PromptOptions.Exit:
           await this.exit()
-      } else if (choice.options == PromptOptions.Restart){
+          break
+        case PromptOptions.Restart:
           await this.restart()
           return
       }
       this.processAnswer()
     }
 
-    async proofProposalPrompt(payload: any) {
-      const confirm = await inquirer.prompt([this.inquireConfirmation(Title.proofProposalTitle)])
-      if (confirm.options === 'no'){
-        return
-      } else if (confirm.options === 'yes'){
-        await this.klm.acceptProofProposal(payload)
-      }
-    }
-
     async connection() {
       const title = Title.invitationTitle
       const getUrl = await inquirer.prompt([this.inquireInput(title)])
       await this.klm.acceptConnection(getUrl.input)
-      this.listener.proofProposalListener(this.klm, this)
     }
 
     async credential() {
       await this.klm.issueCredential()
+    }
+
+    async proof() {
+      await this.klm.sendProofRequest()
     }
 
     async message() {
