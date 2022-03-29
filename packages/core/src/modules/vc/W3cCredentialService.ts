@@ -15,6 +15,7 @@ import vc from '@digitalcredentials/vc'
 import { inject, Lifecycle, scoped } from 'tsyringe'
 
 import { AgentConfig } from '../../agent/AgentConfig'
+import { InjectionSymbols } from '../../constants'
 import { Key, KeyType } from '../../crypto'
 import { Ed25519Signature2018 } from '../../crypto/Ed25519Signature2018'
 import { createWalletKeyPairClass } from '../../crypto/WalletKeyPair'
@@ -80,7 +81,7 @@ export class W3cCredentialService {
   }
 
   public constructor(
-    @inject('Wallet') wallet: Wallet,
+    @inject(InjectionSymbols.Wallet) wallet: Wallet,
     w3cCredentialRepository: W3cCredentialRepository,
     didResolver: DidResolverService,
     agentConfig: AgentConfig,
@@ -215,6 +216,35 @@ export class W3cCredentialService {
     await this.w3cCredentialRepository.save(w3cCredentialRecord)
 
     return w3cCredentialRecord
+  }
+
+  /**
+   * Retrieve a w3cCredentialRecord from the repository
+   *
+   * @param id the w3cCredentialRecord id
+   * @returns the found w3cCredentialRecord
+   */
+  public async retrieveW3cCredentialRecordById(id: string): Promise<W3cCredentialRecord> {
+    return await this.w3cCredentialRepository.getById(id)
+  }
+
+  /**
+   * Retrieve all w3cCredentialRecords from the repository
+   *
+   * @returns the found w3cCredentialRecords
+   */
+  public async retrieveAllW3cCredentialRecord(): Promise<W3cCredentialRecord[]> {
+    return await this.w3cCredentialRepository.getAll()
+  }
+
+  /**
+   * Retrieve w3cCredentialRecords from the repository by expandedType(s)
+   *
+   * @param expandedTypes Array of expanded types
+   * @returns the found w3cCredentialRecords
+   */
+  public async retrieveW3cCredentialRecordsByExpandedType(expandedTypes: string[]): Promise<W3cCredentialRecord[]> {
+    return await this.w3cCredentialRepository.findByQuery({ expandedTypes })
   }
 
   /**
