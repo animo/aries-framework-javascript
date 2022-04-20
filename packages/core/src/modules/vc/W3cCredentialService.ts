@@ -10,7 +10,6 @@ import type {
   VerifyPresentationOptions,
 } from './models/W3cCredentialServiceOptions'
 import type { VerifyPresentationResult } from './models/presentation/VerifyPresentationResult'
-import type { RemoteDocument, Url } from 'jsonld/jsonld-spec'
 
 import jsonld, { expand, frame } from '@digitalcredentials/jsonld'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -296,20 +295,16 @@ export class W3cCredentialService {
     const suiteInfo = this.suiteRegistry.getByProofType('BbsBlsSignatureProof2020')
     const SuiteClass = suiteInfo.suiteClass
 
-    const signingKey = await this.getPublicKeyFromVerificationMethod(options.verificationMethod)
+    // const signingKey = await this.getPublicKeyFromVerificationMethod(options.verificationMethod)
 
-    const keyPair = new WalletKeyPair({
-      controller: options.credential.issuerId, // is this correct? I guess this should be the holders keyId, or not?
-      id: options.verificationMethod, // should the verificationMethod be passed in or can we infer this somehow?
-      key: signingKey,
-      wallet: this.wallet,
-    })
+    // const keyPair = new WalletKeyPair({
+    //   controller: options.credential.issuerId, // is this correct? I guess this should be the holders keyId, or not?
+    //   id: options.verificationMethod, // should the verificationMethod be passed in or can we infer this somehow?
+    //   key: signingKey,
+    //   wallet: this.wallet,
+    // })
 
-    const suite = new SuiteClass({
-      key: keyPair,
-      // LDClass: WalletKeyPair,
-      useNativeCanonize: false,
-    })
+    const suite = new SuiteClass()
 
     const proof = await deriveProof(JsonTransformer.toJSON(options.credential), options.revealDocument, {
       suite: suite,
@@ -319,7 +314,7 @@ export class W3cCredentialService {
     return proof
   }
 
-  public documentLoader = async (url: Url): Promise<RemoteDocument> => {
+  public documentLoader = async (url: string): Promise<Record<string, any>> => {
     if (url.startsWith('did:')) {
       const result = await this.didResolver.resolve(url)
 
@@ -335,7 +330,6 @@ export class W3cCredentialService {
       })
 
       return {
-        // contextUrl: result.didDocument.context[0],
         contextUrl: null,
         documentUrl: url,
         document: framed,
