@@ -160,7 +160,7 @@ export class BbsBlsSignatureProof2020 extends suites.LinkedDataProof {
 
     // Create a nonce if one is not supplied
     if (!nonce) {
-      nonce = await randomBytes(50)
+      nonce = randomBytes(50)
     }
 
     // Set the nonce on the derived proof
@@ -188,10 +188,10 @@ export class BbsBlsSignatureProof2020 extends suites.LinkedDataProof {
 
     // Compute the proof
     const outputProof = await blsCreateProof({
-      signature: new Uint8Array(signature),
-      publicKey: new Uint8Array(key.publicKeyBuffer),
+      signature,
+      publicKey: key.publicKeyBuffer,
       messages: allInputStatements,
-      nonce: nonce,
+      nonce,
       revealed: revealIndicies,
     })
 
@@ -261,12 +261,14 @@ export class BbsBlsSignatureProof2020 extends suites.LinkedDataProof {
         ? await this.LDKeyClass.fromJwk(verificationMethod)
         : await this.LDKeyClass.from(verificationMethod)
 
+      console.log(JSON.stringify(key))
+
       // Verify the proof
       const verified = await blsVerifyProof({
-        proof: new Uint8Array(TypedArrayEncoder.fromBase64(proof.proofValue)),
-        publicKey: new Uint8Array(key.publicKeyBuffer),
+        proof: TypedArrayEncoder.fromBase64(proof.proofValue),
+        publicKey: key.publicKeyBuffer,
         messages: statementsToVerify,
-        nonce: new Uint8Array(TypedArrayEncoder.fromBase64(proof.nonce as string)),
+        nonce: TypedArrayEncoder.fromBase64(proof.nonce as string),
       })
 
       // Ensure proof was performed for a valid purpose
