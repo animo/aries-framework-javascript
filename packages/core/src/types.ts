@@ -57,7 +57,6 @@ export interface InitConfig {
   endpoints?: string[]
   label: string
   publicDidSeed?: string
-  mediatorRecordId?: string
   walletConfig?: WalletConfig
   autoAcceptConnections?: boolean
   autoAcceptProofs?: AutoAcceptProof
