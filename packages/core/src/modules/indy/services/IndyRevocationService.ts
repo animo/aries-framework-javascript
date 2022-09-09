@@ -105,7 +105,7 @@ export class IndyRevocationService {
 
           const { revocationRegistryDelta, deltaTimestamp } = await this.ledgerService.getRevocationRegistryDelta(
             revocationRegistryId,
-            requestRevocationInterval?.to as number,
+            requestRevocationInterval?.to ?? 0,
             0
           )
 
@@ -159,7 +159,7 @@ export class IndyRevocationService {
 
     const { revocationRegistryDelta, deltaTimestamp } = await this.ledgerService.getRevocationRegistryDelta(
       revocationRegistryDefinitionId,
-      requestRevocationInterval.to as number,
+      requestRevocationInterval.to ?? 0,
       0
     )
 

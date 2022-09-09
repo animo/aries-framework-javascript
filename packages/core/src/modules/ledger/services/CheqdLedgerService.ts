@@ -21,6 +21,7 @@ import type { DidStdFee, IKeyPair } from '@cheqd/sdk/build/types'
 import type { TImportableEd25519Key } from '@cheqd/sdk/build/utils'
 import type { MsgUpdateDidPayload, MsgCreateDidPayload } from '@cheqd/ts-proto/cheqd/v1/tx'
 import type { MsgCreateResourcePayload } from '@cheqd/ts-proto/resource/v1/tx'
+import type { DIDDocument } from 'did-resolver'
 import type Indy from 'indy-sdk'
 
 import { DIDModule, createCheqdSDK, ResourceModule } from '@cheqd/sdk'
@@ -39,7 +40,7 @@ import { AgentConfig } from '../../../agent/AgentConfig'
 import { KeyType } from '../../../crypto'
 import { AriesFrameworkError } from '../../../error'
 import { injectable } from '../../../plugins'
-import { JsonEncoder, TypedArrayEncoder } from '../../../utils'
+import { indyDidFromPublicKeyBase58, JsonEncoder, MultiBaseEncoder, TypedArrayEncoder } from '../../../utils'
 import { uuid } from '../../../utils/uuid'
 import { IndyWallet } from '../../../wallet/IndyWallet'
 import { IndyCredentialUtils } from '../../credentials/formats/indy/IndyCredentialUtils'
@@ -186,29 +187,29 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     this.cheqdKeyPair = cheqdKeyPair
 
     const indyKeyPair: IKeyPair = {
-      publicKey: verkey,
+      publicKey: TypedArrayEncoder.toBase64(TypedArrayEncoder.fromBase58(verkey)),
       privateKey: ':)',
     }
 
-    const cheqdKeyParBase58: IKeyPair = {
-      publicKey: TypedArrayEncoder.toBase58(TypedArrayEncoder.fromBase64(cheqdKeyPair.publicKey)),
-      privateKey: TypedArrayEncoder.toBase58(TypedArrayEncoder.fromBase64(cheqdKeyPair.privateKey)),
-    }
-
-    const indyVerificationKey = createVerificationKeys(indyKeyPair, MethodSpecificIdAlgo.Base58, 'key-1')
-    const cheqdVerificationKey = createVerificationKeys(cheqdKeyParBase58, MethodSpecificIdAlgo.Base58, 'key-2')
+    const indyVerificationKey = createVerificationKeys(indyKeyPair, MethodSpecificIdAlgo.Base58, 'indykey-1')
+    const cheqdVerificationKey = createVerificationKeys(cheqdKeyPair, MethodSpecificIdAlgo.Base58, 'key-2')
     const verificationKeys = [indyVerificationKey]
+
     const verificationMethods = createDidVerificationMethod(
       [VerificationMethods.Base58, VerificationMethods.Base58],
       [indyVerificationKey, cheqdVerificationKey]
-    )
+    ).map((m) => {
+      m.id = indyVerificationKey.didUrl + '#' + m.id.split('#')[1]
+      m.controller = indyVerificationKey.didUrl
+      return m
+    })
 
     const didPayload = createDidPayload(verificationMethods, verificationKeys)
     console.log(JSON.stringify(didPayload))
 
     // Use the cheqd keypair for sining
-    const privateKeyHex = toString(fromString(cheqdKeyParBase58.privateKey, 'base58btc'), 'hex')
-    const publicKeyHex = toString(fromString(cheqdKeyParBase58.publicKey, 'base58btc'), 'hex')
+    const privateKeyHex = toString(fromString(cheqdKeyPair.privateKey, 'base64'), 'hex')
+    const publicKeyHex = toString(fromString(cheqdKeyPair.publicKey, 'base64'), 'hex')
 
     const key: TImportableEd25519Key = {
       type: 'Ed25519',
@@ -217,33 +218,31 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
       publicKeyHex: publicKeyHex,
     }
 
-    const signInputs = [key].map((k) => createSignInputsFromImportableEd25519Key(k, verificationMethods))
+    const signInputs = [key].map((k) => createSignInputsFromImportableEd25519Key(k, [verificationMethods[1]]))
 
     const sdk = await this.getCheqdSDK()
 
     const resp = await sdk.createDidTx(signInputs, didPayload, faucet.address, this.fee || 'auto', undefined, { sdk })
     assert(resp.code === 0, `Could not register did! Response ${JSON.stringify(resp)}`)
 
-    // TODOOOOOO
-    // INDY:  TL1EaPFCZ8Si5aUrqScBDt
-    // CHEQD: zFMGcFuU3QwAQLyw
-
     return didPayload.id
   }
 
-  // TODO-CHEQD: implement
-  public async getPublicDid(): Promise<Indy.GetNymResponse> {
-    const sdk = await this.getCheqdSDK()
-    const verkey = (await sdk.options.wallet.getAccounts())[0].pubkey
-    if (!this.cheqdDid) {
-      throw new AriesFrameworkError('No did available')
-    } else {
-      const getNymResponse: Indy.GetNymResponse = {
-        did: this.cheqdDid,
-        verkey: verkey[0].toString(), // TODO: is this really the verkey?
-        role: 'TRUSTEE', // TODO: What is the role? Where to get the correct role from?
-      }
-      return getNymResponse
+  public async getPublicDid(did: string): Promise<Indy.GetNymResponse> {
+    const didDoc: DIDDocument = (
+      await (await this.config.agentDependencies.fetch(`https://dev.uniresolver.io/1.0/identifiers/${did}`)).json()
+    ).didDocument
+    const didDocData = (didDoc.verificationMethod ?? []).find((v) => v.id.endsWith('indykey-1'))
+    if (!didDocData) throw new AriesFrameworkError('NO indykey-1 FOUND IN THE VERIFICATION METHODS')
+    const verkey = didDocData.publicKeyMultibase
+    if (!verkey) throw new AriesFrameworkError('NO publicKeyMultibase FOUND IN THE VERIFICATION METHODS')
+
+    const { data } = MultiBaseEncoder.decode(verkey)
+    return {
+      did: indyDidFromPublicKeyBase58(TypedArrayEncoder.toBase58(data)),
+      verkey,
+      // MOCK ROLE
+      role: 'TRUSTEE',
     }
   }
 
