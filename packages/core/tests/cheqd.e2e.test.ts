@@ -17,10 +17,10 @@ import {
   ProofState,
   ProofEventTypes,
 } from '../src'
+import { IndyWallet } from '../src/wallet/IndyWallet'
 
 import { getBaseConfig, waitForCredentialRecordSubject, waitForProofRecordSubject } from './helpers'
 import { TestLogger } from './logger'
-import { IndyWallet } from '../src/wallet/IndyWallet'
 
 const logger = new TestLogger(LogLevel.debug)
 
@@ -76,6 +76,8 @@ describe('Cheqd', () => {
     const resolvedPublicDidData = await faberAgent.ledger.getPublicDid(publicDid)
     expect(resolvedPublicDidData.did).toStrictEqual(didInfo.did)
 
+    console.log(publicDid)
+
     const schema = await faberAgent.ledger.registerSchema({
       attributes: ['name', 'age'],
       name: 'test',
@@ -83,6 +85,8 @@ describe('Cheqd', () => {
     })
 
     expect(schema.id.includes('did:cheqd:testnet')).toBe(true)
+
+    process.exit()
 
     const retrievedSchema = await faberAgent.ledger.getSchema(schema.id)
     expect(retrievedSchema).toEqual(schema)

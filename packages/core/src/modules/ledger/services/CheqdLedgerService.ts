@@ -34,6 +34,7 @@ import {
   createSignInputsFromImportableEd25519Key,
 } from '@cheqd/sdk/build/utils'
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing'
+import { generateKeyPairFromSeed } from '@stablelib/ed25519'
 import { fromString, toString } from 'uint8arrays'
 
 import { AgentConfig } from '../../../agent/AgentConfig'
@@ -94,12 +95,34 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
   private fee?: DidStdFee
 
   private cheqdKeyPair?: IKeyPair
+  private cheqdDid?: string
 
   public constructor(wallet: IndyWallet, agentConfig: AgentConfig) {
     this.wallet = wallet
     this.indy = agentConfig.agentDependencies.indy
     this.logger = agentConfig.logger
     this.config = agentConfig
+
+    // Set cheqd key pair and public cheqd did
+    if (this.config.publicDidSeed) {
+      const seed = this.config.publicDidSeed
+      const keyPair = generateKeyPairFromSeed(TypedArrayEncoder.fromString(seed))
+
+      this.cheqdKeyPair = {
+        publicKey: toString(keyPair.publicKey, 'base64'),
+        privateKey: toString(keyPair.secretKey, 'base64'),
+      }
+
+      void this.indy.createKey(this.wallet.handle, { seed }).then((indyVerkey) => {
+        const indyKeyPair: IKeyPair = {
+          publicKey: TypedArrayEncoder.toBase64(TypedArrayEncoder.fromBase58(indyVerkey)),
+          privateKey: ':)',
+        }
+
+        const indyVerificationKey = createVerificationKeys(indyKeyPair, MethodSpecificIdAlgo.Base58, 'indykey-1')
+        this.cheqdDid = indyVerificationKey.didUrl
+      })
+    }
   }
 
   private async getCheqdSDK(fee?: DidStdFee): Promise<CheqdSDK> {
@@ -183,6 +206,7 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     const seed = this.config.publicDidSeed
     assert(seed ? seed.length > 0 : false, 'NO SEED PROVIDED IN THE AGENT CONFIG')
     // TODO-CHEQD: create/get a keypair from wallet
+    // TODO-CHEQD: create keypair from seed to have consistent did (should be in constructor)
     const cheqdKeyPair = createKeyPairBase64()
     this.cheqdKeyPair = cheqdKeyPair
 

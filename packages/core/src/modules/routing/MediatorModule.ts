@@ -82,8 +82,5 @@ export class MediatorModule {
     dependencyManager.registerSingleton(MediatorService)
     dependencyManager.registerSingleton(MessagePickupService)
     dependencyManager.registerSingleton(V2MessagePickupService)
-
-    // FIXME: Inject in constructor
-    dependencyManager.resolve(V2MessagePickupService)
   }
 }
