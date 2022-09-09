@@ -1,11 +1,11 @@
-import type { IndyEndpointAttrib } from '../services'
 import type {
   CredentialDefinitionTemplate,
+  IndyEndpointAttrib,
   ParseRevocationRegistryDefinitionTemplate,
   ParseRevocationRegistryDeltaTemplate,
   ParseRevocationRegistryTemplate,
   SchemaTemplate,
-} from '@aries-framework/core'
+} from '../services'
 import type { CredDef, GetNymResponse, NymRole, Schema } from 'indy-sdk'
 
 export const GenericIndyLedgerService = Symbol('GenericIndyLedgerService')
