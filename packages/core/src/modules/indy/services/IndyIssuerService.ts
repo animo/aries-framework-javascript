@@ -14,10 +14,11 @@ import type {
 import { AgentConfig } from '../../../agent/AgentConfig'
 import { AriesFrameworkError } from '../../../error/AriesFrameworkError'
 import { IndySdkError } from '../../../error/IndySdkError'
-import { injectable } from '../../../plugins'
+import { inject, injectable } from '../../../plugins'
 import { isIndyError } from '../../../utils/indyError'
 import { IndyWallet } from '../../../wallet/IndyWallet'
-import { CheqdResourceService } from '../../ledger/services/CheqdResourceService'
+import { GenericIndyLedgerService } from '../../ledger/models/IndyLedgerService'
+import { CheqdLedgerService } from '../../ledger/services/CheqdLedgerService'
 
 import { IndyUtilitiesService } from './IndyUtilitiesService'
 
@@ -32,7 +33,7 @@ export class IndyIssuerService {
     agentConfig: AgentConfig,
     wallet: IndyWallet,
     indyUtilitiesService: IndyUtilitiesService,
-    private cheqdResourceService: CheqdResourceService
+    @inject(GenericIndyLedgerService) private ledgerService: CheqdLedgerService
   ) {
     this.indy = agentConfig.agentDependencies.indy
     this.wallet = wallet
@@ -92,8 +93,8 @@ export class IndyIssuerService {
    * @returns The created credential offer
    */
   public async createCredentialOffer(credentialDefinitionId: CredDefId): Promise<Indy.CredOffer> {
-    const credDefResource = await this.cheqdResourceService.getCredentialDefinitionResource(credentialDefinitionId)
-    const indyCredDefId = await this.cheqdResourceService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
+    const credDefResource = await this.ledgerService.getCredentialDefinitionResource(credentialDefinitionId)
+    const indyCredDefId = await this.ledgerService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
       credentialDefinitionId
     )
     try {
@@ -121,13 +122,13 @@ export class IndyIssuerService {
     revocationRegistryId,
     tailsFilePath,
   }: CreateCredentialOptions): Promise<[Cred, CredRevocId]> {
-    const credentialDefinitionResource = await this.cheqdResourceService.getCredentialDefinitionResource(
+    const credentialDefinitionResource = await this.ledgerService.getCredentialDefinitionResource(
       credentialRequest.cred_def_id
     )
-    const indySchemaId = await this.cheqdResourceService.indySchemaIdFromCheqdSchemaId(
+    const indySchemaId = await this.ledgerService.indySchemaIdFromCheqdSchemaId(
       credentialDefinitionResource.data.AnonCredsCredDef.schemaId
     )
-    const indyCredDefId = await this.cheqdResourceService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
+    const indyCredDefId = await this.ledgerService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
       credentialRequest.cred_def_id
     )
 

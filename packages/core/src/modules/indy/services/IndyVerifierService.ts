@@ -4,21 +4,18 @@ import { AgentConfig } from '../../../agent/AgentConfig'
 import { IndySdkError } from '../../../error'
 import { inject, injectable } from '../../../plugins'
 import { isIndyError } from '../../../utils/indyError'
+import { CheqdLedgerService } from '../../ledger'
 import { GenericIndyLedgerService } from '../../ledger/models/IndyLedgerService'
-import { CheqdResourceService } from '../../ledger/services/CheqdResourceService'
 
 @injectable()
 export class IndyVerifierService {
   private indy: typeof Indy
-  private ledgerService: GenericIndyLedgerService
 
   public constructor(
     agentConfig: AgentConfig,
-    @inject(GenericIndyLedgerService) ledgerService: GenericIndyLedgerService,
-    private cheqdResourceService: CheqdResourceService
+    @inject(GenericIndyLedgerService) private ledgerService: CheqdLedgerService
   ) {
     this.indy = agentConfig.agentDependencies.indy
-    this.ledgerService = ledgerService
   }
 
   private async getIndyProofRequestFromCheqdProofRequest(proofRequest: Indy.IndyProofRequest) {
@@ -37,15 +34,14 @@ export class IndyVerifierService {
         const newRestriction = { ...restriction }
 
         if (typeof restriction.schema_id === 'string') {
-          const indySchemaId = await this.cheqdResourceService.indySchemaIdFromCheqdSchemaId(restriction.schema_id)
+          const indySchemaId = await this.ledgerService.indySchemaIdFromCheqdSchemaId(restriction.schema_id)
           newRestriction.schema_id = indySchemaId
         }
 
         if (typeof restriction.cred_def_id === 'string') {
-          const indyCredDefId =
-            await this.cheqdResourceService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
-              restriction.cred_def_id
-            )
+          const indyCredDefId = await this.ledgerService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
+            restriction.cred_def_id
+          )
           newRestriction.cred_def_id = indyCredDefId
         }
 
@@ -70,15 +66,14 @@ export class IndyVerifierService {
         const newRestriction = { ...restriction }
 
         if (typeof restriction.schema_id === 'string') {
-          const indySchemaId = await this.cheqdResourceService.indySchemaIdFromCheqdSchemaId(restriction.schema_id)
+          const indySchemaId = await this.ledgerService.indySchemaIdFromCheqdSchemaId(restriction.schema_id)
           newRestriction.schema_id = indySchemaId
         }
 
         if (typeof restriction.cred_def_id === 'string') {
-          const indyCredDefId =
-            await this.cheqdResourceService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
-              restriction.cred_def_id
-            )
+          const indyCredDefId = await this.ledgerService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
+            restriction.cred_def_id
+          )
           newRestriction.cred_def_id = indyCredDefId
         }
 
@@ -115,7 +110,7 @@ export class IndyVerifierService {
       const goodSchemas = (
         await Promise.all(
           Object.entries(schemas).map(async ([schemaId, schema]) => {
-            const indySchemaId = await this.cheqdResourceService.indySchemaIdFromCheqdSchemaId(schemaId)
+            const indySchemaId = await this.ledgerService.indySchemaIdFromCheqdSchemaId(schemaId)
 
             idMapping[schemaId] = indySchemaId
             return [indySchemaId, { ...schema, id: indySchemaId }] as const
@@ -126,11 +121,12 @@ export class IndyVerifierService {
       const goodCredDefs = (
         await Promise.all(
           Object.entries(credentialDefinitions).map(async ([credDefId, credDef]) => {
-            const indyCredDefId =
-              await this.cheqdResourceService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(credDefId)
+            const indyCredDefId = await this.ledgerService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
+              credDefId
+            )
 
             idMapping[credDefId] = indyCredDefId
-            const indySchemaId = await this.cheqdResourceService.indySchemaIdFromCheqdSchemaId(credDef.schemaId)
+            const indySchemaId = await this.ledgerService.indySchemaIdFromCheqdSchemaId(credDef.schemaId)
             idMapping[credDef.schemaId] = indySchemaId
 
             return [indyCredDefId, { ...credDef, id: indyCredDefId, schemaId: indySchemaId }] as const

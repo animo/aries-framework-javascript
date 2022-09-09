@@ -1,6 +1,14 @@
 import type { Logger } from '../../../logger'
 import type { AcceptanceMechanisms, AuthorAgreement, IndyPool } from '../IndyPool'
-import type { GenericIndyLedgerService } from '../models/IndyLedgerService'
+import type {
+  CredentialDefinitionTemplate,
+  GenericIndyLedgerService,
+  IndyEndpointAttrib,
+  ParseRevocationRegistryDefinitionTemplate,
+  ParseRevocationRegistryDeltaTemplate,
+  ParseRevocationRegistryTemplate,
+  SchemaTemplate,
+} from '../models/IndyLedgerService'
 import type {
   default as Indy,
   CredDef,
@@ -531,39 +539,4 @@ export class IndyLedgerService implements GenericIndyLedgerService {
       throw isIndyError(error) ? new IndySdkError(error) : error
     }
   }
-}
-
-export interface SchemaTemplate {
-  name: string
-  version: string
-  attributes: string[]
-}
-
-export interface CredentialDefinitionTemplate {
-  schema: Schema
-  tag: string
-  signatureType: 'CL'
-  supportRevocation: boolean
-}
-
-export interface ParseRevocationRegistryDefinitionTemplate {
-  revocationRegistryDefinition: Indy.RevocRegDef
-  revocationRegistryDefinitionTxnTime: number
-}
-
-export interface ParseRevocationRegistryDeltaTemplate {
-  revocationRegistryDelta: Indy.RevocRegDelta
-  deltaTimestamp: number
-}
-
-export interface ParseRevocationRegistryTemplate {
-  revocationRegistry: Indy.RevocReg
-  ledgerTimestamp: number
-}
-
-export interface IndyEndpointAttrib {
-  endpoint?: string
-  types?: Array<'endpoint' | 'did-communication' | 'DIDComm'>
-  routingKeys?: string[]
-  [key: string]: unknown
 }

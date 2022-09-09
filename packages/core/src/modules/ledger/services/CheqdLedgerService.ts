@@ -1,25 +1,29 @@
 /* eslint-disable no-console */
 import type { Logger } from '../../../logger'
-import type { CredentialDefinitionResource, SchemaResource } from '../cheqd/cheqdIndyUtils'
-import type { GenericIndyLedgerService } from '../models/IndyLedgerService'
 import type {
+  CheqdCredDefResourceData,
+  CheqdSchemaResourceData,
+  CredentialDefinitionResource,
+  SchemaResource,
+} from '../cheqd/cheqdIndyUtils'
+import type {
+  GenericIndyLedgerService,
   IndyEndpointAttrib,
   SchemaTemplate,
   CredentialDefinitionTemplate,
   ParseRevocationRegistryDefinitionTemplate,
   ParseRevocationRegistryDeltaTemplate,
   ParseRevocationRegistryTemplate,
-} from './IndyLedgerService'
+} from '../models/IndyLedgerService'
 import type { CheqdSDK, ICheqdSDKOptions } from '@cheqd/sdk'
 import type { AbstractCheqdSDKModule } from '@cheqd/sdk/build/modules/_'
-import type { DidStdFee, IContext, IKeyPair } from '@cheqd/sdk/build/types'
+import type { DidStdFee, IKeyPair } from '@cheqd/sdk/build/types'
 import type { TImportableEd25519Key } from '@cheqd/sdk/build/utils'
-import type { MsgUpdateDidPayload, SignInfo, MsgCreateDidPayload } from '@cheqd/ts-proto/cheqd/v1/tx'
-import type { MsgCreateResource } from '@cheqd/ts-proto/resource/v1/tx'
-import type { DeliverTxResponse } from '@cosmjs/stargate'
+import type { MsgUpdateDidPayload, MsgCreateDidPayload } from '@cheqd/ts-proto/cheqd/v1/tx'
+import type { MsgCreateResourcePayload } from '@cheqd/ts-proto/resource/v1/tx'
 import type Indy from 'indy-sdk'
 
-import { DIDModule, createCheqdSDK } from '@cheqd/sdk'
+import { DIDModule, createCheqdSDK, ResourceModule } from '@cheqd/sdk'
 import { MethodSpecificIdAlgo, VerificationMethods } from '@cheqd/sdk/build/types'
 import {
   createDidPayload,
@@ -28,28 +32,24 @@ import {
   createVerificationKeys,
   createSignInputsFromImportableEd25519Key,
 } from '@cheqd/sdk/build/utils'
-import { MsgCreateResourcePayload } from '@cheqd/ts-proto/resource/v1/tx'
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing'
-import { base64ToBytes, EdDSASigner, ES256KSigner, ES256Signer, hexToBytes } from 'did-jwt'
-import { Writer } from 'protobufjs'
 import { fromString, toString } from 'uint8arrays'
-import { TextEncoder } from 'util'
 
 import { AgentConfig } from '../../../agent/AgentConfig'
 import { KeyType } from '../../../crypto'
 import { AriesFrameworkError } from '../../../error'
 import { injectable } from '../../../plugins'
-import { TypedArrayEncoder } from '../../../utils'
+import { JsonEncoder, TypedArrayEncoder } from '../../../utils'
 import { uuid } from '../../../utils/uuid'
 import { IndyWallet } from '../../../wallet/IndyWallet'
-import { Key } from '../../dids'
+import { IndyCredentialUtils } from '../../credentials/formats/indy/IndyCredentialUtils'
+import { Key } from '../../dids/domain/Key'
 import {
+  indySchemaIdFromSchemaResource,
   indyCredentialDefinitionFromCredentialDefinitionResource,
   indySchemaFromSchemaResource,
   resourceRegistry,
 } from '../cheqd/cheqdIndyUtils'
-
-import { CheqdResourceService } from './CheqdResourceService'
 
 // --------------
 
@@ -86,7 +86,6 @@ export const faucet = {
 export class CheqdLedgerService implements GenericIndyLedgerService {
   private wallet: IndyWallet
   private indy: typeof Indy
-  private cheqdResourceService: CheqdResourceService
   private logger: Logger
   private config: AgentConfig
 
@@ -95,10 +94,9 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
   private cheqdKeyPair?: IKeyPair
 
-  public constructor(wallet: IndyWallet, agentConfig: AgentConfig, cheqdResourceService: CheqdResourceService) {
+  public constructor(wallet: IndyWallet, agentConfig: AgentConfig) {
     this.wallet = wallet
     this.indy = agentConfig.agentDependencies.indy
-    this.cheqdResourceService = cheqdResourceService
     this.logger = agentConfig.logger
     this.config = agentConfig
   }
@@ -127,6 +125,50 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
       payer: (await sdkOptions.wallet.getAccounts())[0].address,
     }
     return this.sdk
+  }
+
+  // TODO-CHEQD: integrate with cheqd-sdk
+  public async getSchemaResource(schemaId: string): Promise<SchemaResource> {
+    const resource = resourceRegistry.schemas[schemaId]
+
+    if (!resource) {
+      throw new AriesFrameworkError(`Schema with id ${schemaId} not found`)
+    }
+
+    return resource
+  }
+
+  // TODO-CHEQD: integrate with cheqd sdk
+  public async getCredentialDefinitionResource(credentialDefinitionId: string): Promise<CredentialDefinitionResource> {
+    const sdk = await this.getCheqdSDK()
+
+    const resourceModule = new ResourceModule(sdk.signer)
+    resourceModule.createResourceTx
+
+    const resource = resourceRegistry.credentialDefinitions[credentialDefinitionId]
+
+    if (!resource) {
+      throw new AriesFrameworkError(`Credential definition with id ${credentialDefinitionId} not found`)
+    }
+
+    return resource
+  }
+
+  public async indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(cheqdCredDefId: string) {
+    const credDefResource = await this.getCredentialDefinitionResource(cheqdCredDefId)
+    const schemaResource = await this.getSchemaResource(credDefResource.data.AnonCredsCredDef.schemaId)
+
+    const schemaId = indySchemaIdFromSchemaResource(schemaResource)
+    const txnId = IndyCredentialUtils.encode(schemaId).substring(0, 6)
+
+    const credentialDefinitionId = `${credDefResource._indyData.did}:3:CL:${txnId}:${credDefResource.data.AnonCredsCredDef.tag}`
+    return credentialDefinitionId
+  }
+
+  public async indySchemaIdFromCheqdSchemaId(cheqdSchemaId: string) {
+    const schemaResource = await this.getSchemaResource(cheqdSchemaId)
+    const schemaId = indySchemaIdFromSchemaResource(schemaResource)
+    return schemaId
   }
 
   public async registerPublicDid(
@@ -205,7 +247,6 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     }
   }
 
-  // TODO-CHEQD: integrate with cheqd-sdk
   public async registerSchema(indyDid: string, schemaTemplate: SchemaTemplate): Promise<Indy.Schema> {
     // This part transform the indy did into the cheqd did in a hacky way. In the future we should pass the cheqd did directly,
     // But that requires better integration with the did module
@@ -214,236 +255,53 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     const cheqdDidIdentifier = Key.fromPublicKeyBase58(verkey, KeyType.Ed25519).fingerprint.substring(0, 32)
 
     const resourceId = uuid()
-    const resource: SchemaResource = {
-      _indyData: {
-        did: indyDid,
-      },
-      header: {
-        collectionId: cheqdDidIdentifier,
-        id: resourceId,
+    const resourceData: CheqdSchemaResourceData = {
+      AnonCredsSchema: {
+        attr_names: schemaTemplate.attributes,
         name: schemaTemplate.name,
-        resourceType: 'CL-Schema',
+        version: schemaTemplate.version,
       },
-      data: {
-        AnonCredsSchema: {
-          attr_names: schemaTemplate.attributes,
-          name: schemaTemplate.name,
-          version: schemaTemplate.version,
-        },
-        AnonCredsObjectMetadata: {
-          objectFamily: 'anoncreds',
-          objectFamilyVersion: 'v2',
-          objectType: '2',
-          objectURI: `did:cheqd:testnet:${cheqdDidIdentifier}/resources/${resourceId}`,
-          publisherDid: `did:cheqd:testnet:${cheqdDidIdentifier}`,
-        },
+      AnonCredsObjectMetadata: {
+        objectFamily: 'anoncreds',
+        objectFamilyVersion: 'v2',
+        objectType: '2',
+        objectURI: `did:cheqd:testnet:${cheqdDidIdentifier}/resources/${resourceId}`,
+        publisherDid: `did:cheqd:testnet:${cheqdDidIdentifier}`,
       },
-    } as const
+    }
 
-    // Register schema in local registry
-    resourceRegistry.schemas[resource.data.AnonCredsObjectMetadata.objectURI] = resource
+    const cheqdDid = `did:cheqd:testnet:the-did-identifier` // TODO: should be registered did cheqd (probably from config)
 
-    console.log(this.verificationMethods)
+    const indySchemaId = `${indyDid}:2:${schemaTemplate.name}:${schemaTemplate.version}`
+    const txnId = Number(IndyCredentialUtils.encode(indySchemaId).substring(0, 6))
 
-    if (!this.verificationMethods) throw new AriesFrameworkError('Missing verification methods')
-    if (!this.verificationKeys) throw new AriesFrameworkError('Missing verification keys')
-
-    const didPayload = createDidPayload(this.verificationMethods, [this.verificationKeys])
     const resourcePayload: MsgCreateResourcePayload = {
-      collectionId: didPayload.id.split(':').reverse()[0],
+      collectionId: cheqdDid.split(':').reverse()[0],
       id: resourceId,
-      name: `Cheqd Schema ${uuid}`,
-      resourceType: 'Cheqd Schema',
-      data: new TextEncoder().encode(JSON.stringify(resource.data)),
+      name: schemaTemplate.name,
+      resourceType: 'CL-Schema',
+      data: JsonEncoder.toBuffer(resourceData),
     }
-    await this.writeTxResource(resourceId, resourcePayload)
-
-    return indySchemaFromSchemaResource(resource)
-  }
-
-  private async writeTxResource(resourceId: string, resourcePayload: MsgCreateResourcePayload) {
-    if (!this.verificationMethods) throw new AriesFrameworkError('Missing verification methods')
-    if (!this.verificationKeys) throw new AriesFrameworkError('Missing verification keys')
-    if (!this.cheqdKeyPair) throw new AriesFrameworkError('Missing verification keys')
-
-    const didPayload = createDidPayload(this.verificationMethods, [this.verificationKeys])
-
-    this.logger.warn(`Using payload: ${JSON.stringify(resourcePayload)}`)
-
-    const sdk = await this.getCheqdSDK()
-    const resourceSignInputs: ISignInputs[] = [
-      {
-        verificationMethodId: didPayload.verificationMethod[0].id,
-        keyType: 'Ed25519',
-        privateKeyHex: toString(fromString(this.cheqdKeyPair.privateKey, 'base64'), 'hex'),
-      },
-    ]
-
-    const resourceTx = await this.createResourceTx(
-      resourceSignInputs,
-      resourcePayload,
-      (
-        await sdk.options.wallet.getAccounts()
-      )[0].address,
-      this.fee ?? {
-        amount: [
-          {
-            denom: 'ncheq',
-            amount: '5000000',
-          },
-        ],
-        gas: '200000',
-        payer: (await sdk.options.wallet.getAccounts())[0].address,
-      }
-    )
-
-    this.logger.warn(`Resource Tx: ${JSON.stringify(resourceTx)}`)
-
-    assert(resourceTx.code === 0, `ResourceTx not written. Exit data ${JSON.stringify(resourceTx)}`)
-
-    return resourceTx
-  }
-
-  public async createResourceTx(
-    signInputs: ISignInputs[],
-    resourcePayload: Partial<MsgCreateResourcePayload>,
-    address: string,
-    fee: DidStdFee | 'auto' | number,
-    memo?: string,
-    context?: IContext
-  ): Promise<DeliverTxResponse> {
-    const sdk = await this.getCheqdSDK()
-    const signer = sdk.signer
-
-    const payload = MsgCreateResourcePayload.fromPartial(resourcePayload)
-
-    const msg = await this.signPayload(payload, signInputs)
-
-    const typeUrlMsgCreateResource = `/${protobufPackage}.MsgCreateResource`
-    const encObj = {
-      typeUrl: typeUrlMsgCreateResource,
-      value: msg,
-    }
-
-    return signer.signAndBroadcast(address, [encObj], fee, memo)
-  }
-
-  private async signPayload(payload: MsgCreateResourcePayload, signInputs: ISignInputs[]): Promise<MsgCreateResource> {
-    const signBytes = this.getMsgCreateResourcePayloadAminoSignBytes(payload)
-    const signatures = await this.signIdentityTx(signBytes, signInputs)
+    await this.writeTxResource(resourcePayload)
 
     return {
-      payload,
-      signatures,
+      id: resourceData.AnonCredsObjectMetadata.objectURI,
+      attrNames: resourceData.AnonCredsSchema.attr_names,
+      name: resourceData.AnonCredsSchema.name,
+      seqNo: txnId,
+      ver: resourceData.AnonCredsSchema.version,
+      version: resourceData.AnonCredsSchema.version,
     }
   }
 
-  private async signIdentityTx(signBytes: Uint8Array, signInputs: ISignInputs[]): Promise<SignInfo[]> {
-    const signInfos: SignInfo[] = []
-
-    for (const signInput of signInputs) {
-      if (typeof signInput.keyType === undefined) {
-        throw new Error('Key type is not defined')
-      }
-
-      let signature: string
-
-      switch (signInput.keyType) {
-        case 'Ed25519':
-          signature = (await EdDSASigner(hexToBytes(signInput.privateKeyHex))(signBytes)) as string
-          break
-        case 'Secp256k1':
-          signature = (await ES256KSigner(hexToBytes(signInput.privateKeyHex))(signBytes)) as string
-          break
-        case 'P256':
-          signature = (await ES256Signer(hexToBytes(signInput.privateKeyHex))(signBytes)) as string
-          break
-        default:
-          throw new Error(`Unsupported signature type: ${signInput.keyType}`)
-      }
-
-      signInfos.push({
-        verificationMethodId: signInput.verificationMethodId,
-        signature: toString(base64ToBytes(signature), 'base64pad'),
-      })
-    }
-
-    return signInfos
-  }
-
-  private getMsgCreateResourcePayloadAminoSignBytes(message: MsgCreateResourcePayload): Uint8Array {
-    const writer = new Writer()
-
-    if (message.collectionId !== '') {
-      writer.uint32(10).string(message.collectionId)
-    }
-    if (message.id !== '') {
-      writer.uint32(18).string(message.id)
-    }
-    if (message.name !== '') {
-      writer.uint32(26).string(message.name)
-    }
-    if (message.resourceType !== '') {
-      writer.uint32(34).string(message.resourceType)
-    }
-    if (message.data.length !== 0) {
-      // Animo coded assigns index 5 to this property. In proto definitions it's 6.
-      // Since we use amino on node + non default property indexing, we need to encode it manually.
-      writer.uint32(42).bytes(message.data)
-    }
-
-    return writer.finish()
-  }
-
-  // TODO-CHEQD: integrate with cheqd-sdk
-  public async getSchema(schemaId: string): Promise<Indy.Schema> {
-    const resource = await this.cheqdResourceService.getSchemaResource(schemaId)
-
-  private getMsgCreateResourcePayloadAminoSignBytes(message: MsgCreateResourcePayload): Uint8Array {
-    const writer = new Writer()
-
-    if (message.collectionId !== '') {
-      writer.uint32(10).string(message.collectionId)
-    }
-    if (message.id !== '') {
-      writer.uint32(18).string(message.id)
-    }
-    if (message.name !== '') {
-      writer.uint32(26).string(message.name)
-    }
-    if (message.resourceType !== '') {
-      writer.uint32(34).string(message.resourceType)
-    }
-    if (message.data.length !== 0) {
-      // Animo coded assigns index 5 to this property. In proto definitions it's 6.
-      // Since we use amino on node + non default property indexing, we need to encode it manually.
-      writer.uint32(42).bytes(message.data)
-    }
-
-    return writer.finish()
-  }
-
-  // TODO-CHEQD: integrate with cheqd-sdk
-  public async getSchema(schemaId: string): Promise<Indy.Schema> {
-    const resource = await this.cheqdResourceService.getSchemaResource(schemaId)
-
-    return indySchemaFromSchemaResource(resource)
-  }
-
-  // TODO-CHEQD: integrate with cheqd sdk
   public async registerCredentialDefinition(
     indyDid: string,
     credentialDefinitionTemplate: CredentialDefinitionTemplate
   ): Promise<Indy.CredDef> {
     const { schema, tag, signatureType, supportRevocation } = credentialDefinitionTemplate
 
-    // This part transform the indy did into the cheqd did in a hacky way. In the future we should pass the cheqd did directly,
-    // But that requires better integration with the did module
-    // Get the verkey for the provided indy did
-    const verkey = await this.indy.keyForLocalDid(this.wallet.handle, indyDid)
-    const cheqdDidIdentifier = Key.fromPublicKeyBase58(verkey, KeyType.Ed25519).fingerprint.substring(0, 32)
-
-    const indySchemaId = await this.cheqdResourceService.indySchemaIdFromCheqdSchemaId(schema.id)
+    const indySchemaId = await this.indySchemaIdFromCheqdSchemaId(schema.id)
+    const cheqdDid = `did:cheqd:testnet:the-did-identifier` // TODO: should be registered did cheqd (probably from config)
 
     const indySchema: Indy.Schema = {
       ...schema,
@@ -464,66 +322,104 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     this.logger.info(credDefId)
 
     const resourceId = uuid()
-
-    const resource: CredentialDefinitionResource = {
-      _indyData: {
-        did: indyDid,
+    const resourceData: CheqdCredDefResourceData = {
+      AnonCredsCredDef: { ...credentialDefinition, id: undefined, schemaId: schema.id },
+      AnonCredsObjectMetadata: {
+        objectFamily: 'anoncreds',
+        objectFamilyVersion: 'v2',
+        objectType: '3',
+        objectURI: `${cheqdDid}/resources/${resourceId}`,
+        publisherDid: cheqdDid,
       },
-      header: {
-        collectionId: cheqdDidIdentifier,
-        id: resourceId,
-        name: tag,
-        resourceType: 'CL-CredDef',
-      },
-      data: {
-        AnonCredsCredDef: { ...credentialDefinition, id: undefined, schemaId: schema.id },
-        AnonCredsObjectMetadata: {
-          objectFamily: 'anoncreds',
-          objectFamilyVersion: 'v2',
-          objectType: '3',
-          objectURI: `did:cheqd:testnet:${cheqdDidIdentifier}/resources/${resourceId}`,
-          publisherDid: `did:cheqd:testnet:${cheqdDidIdentifier}`,
-        },
-      },
-    } as const
-
-    resourceRegistry.credentialDefinitions[resource.data.AnonCredsObjectMetadata.objectURI] = resource
-
-    if (!this.verificationMethods) throw new AriesFrameworkError('Missing verification methods')
-    if (!this.verificationKeys) throw new AriesFrameworkError('Missing verification keys')
-
-    const didPayload = createDidPayload(this.verificationMethods, [this.verificationKeys])
-    const resourcePayload: MsgCreateResourcePayload = {
-      collectionId: didPayload.id.split(':').reverse()[0],
-      id: resourceId,
-      name: `Cheqd Credential Definition ${uuid}`,
-      resourceType: 'cheqd-credential-definition',
-      data: new TextEncoder().encode(JSON.stringify(resource.data)),
     }
-    await this.writeTxResource(resourceId, resourcePayload)
 
-    return indyCredentialDefinitionFromCredentialDefinitionResource(resource)
+    const resourcePayload: MsgCreateResourcePayload = {
+      collectionId: cheqdDid.split(':').reverse()[0],
+      id: resourceId,
+      name: credentialDefinitionTemplate.tag,
+      resourceType: 'CL-CredDef',
+      data: JsonEncoder.toBuffer(resourceData),
+    }
+    await this.writeTxResource(resourcePayload)
+
+    return {
+      ...resourceData.AnonCredsCredDef,
+      id: resourceData.AnonCredsObjectMetadata.objectURI,
+    }
+  }
+
+  public async getSchema(schemaId: string): Promise<Indy.Schema> {
+    const resource = await this.getSchemaResource(schemaId)
+
+    return indySchemaFromSchemaResource(resource)
   }
 
   public async getCredentialDefinition(credentialDefinitionId: string): Promise<Indy.CredDef> {
-    const resource = await this.cheqdResourceService.getCredentialDefinitionResource(credentialDefinitionId)
+    const resource = await this.getCredentialDefinitionResource(credentialDefinitionId)
 
     return indyCredentialDefinitionFromCredentialDefinitionResource(resource)
   }
 
-  public getRevocationRegistryDefinition(): Promise<ParseRevocationRegistryDefinitionTemplate> {
+  private async writeTxResource(resourcePayload: MsgCreateResourcePayload) {
+    if (!this.verificationMethods) throw new AriesFrameworkError('Missing verification methods')
+    if (!this.verificationKeys) throw new AriesFrameworkError('Missing verification keys')
+    if (!this.cheqdKeyPair) throw new AriesFrameworkError('Missing verification keys')
+
+    const didPayload = createDidPayload(this.verificationMethods, [this.verificationKeys])
+
+    this.logger.warn(`Using payload: ${JSON.stringify(resourcePayload)}`)
+
+    const sdk = await this.getCheqdSDK()
+    const resourceSignInputs: ISignInputs[] = [
+      {
+        verificationMethodId: didPayload.verificationMethod[0].id,
+        keyType: 'Ed25519',
+        privateKeyHex: toString(fromString(this.cheqdKeyPair.privateKey, 'base64'), 'hex'),
+      },
+    ]
+
+    const resourceModule = new ResourceModule(sdk.signer)
+    const [{ address }] = await sdk.options.wallet.getAccounts()
+
+    const resourceTx = await resourceModule.createResourceTx(
+      resourceSignInputs,
+      resourcePayload,
+      address,
+      this.fee ?? {
+        amount: [
+          {
+            denom: 'ncheq',
+            amount: '5000000',
+          },
+        ],
+        gas: '200000',
+        payer: address,
+      }
+    )
+
+    this.logger.warn(`Resource Tx: ${JSON.stringify(resourceTx)}`)
+    assert(resourceTx.code === 0, `ResourceTx not written. Exit data ${JSON.stringify(resourceTx)}`)
+
+    return resourceTx
+  }
+
+  public getRevocationRegistryDefinition(a: string): Promise<ParseRevocationRegistryDefinitionTemplate> {
     throw new Error('Method not implemented.')
   }
 
-  public getEndpointsForDid(): Promise<IndyEndpointAttrib> {
+  public getEndpointsForDid(a: string): Promise<IndyEndpointAttrib> {
     throw new Error('Method not implemented.')
   }
 
-  public getRevocationRegistryDelta(): Promise<ParseRevocationRegistryDeltaTemplate> {
+  public getRevocationRegistryDelta(
+    revocationRegistryDefinitionId: string,
+    to: number,
+    from: number
+  ): Promise<ParseRevocationRegistryDeltaTemplate> {
     throw new Error('Method not implemented.')
   }
 
-  public getRevocationRegistry(): Promise<ParseRevocationRegistryTemplate> {
+  public getRevocationRegistry(a: string, b: number): Promise<ParseRevocationRegistryTemplate> {
     throw new Error('Method not implemented.')
   }
 

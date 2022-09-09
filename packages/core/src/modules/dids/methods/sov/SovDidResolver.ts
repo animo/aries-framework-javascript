@@ -1,4 +1,5 @@
-import type { IndyEndpointAttrib, IndyLedgerService } from '../../../ledger'
+import type { IndyLedgerService } from '../../../ledger'
+import type { IndyEndpointAttrib } from '../../../ledger/models/IndyLedgerService'
 import type { DidResolver } from '../../domain/DidResolver'
 import type { ParsedDid, DidResolutionResult } from '../../types'
 

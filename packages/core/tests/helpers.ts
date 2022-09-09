@@ -5,16 +5,15 @@ import type {
   BasicMessage,
   BasicMessageStateChangedEvent,
   ConnectionRecordProps,
-  CredentialDefinitionTemplate,
   CredentialStateChangedEvent,
   InitConfig,
   ProofAttributeInfo,
   ProofPredicateInfo,
   ProofStateChangedEvent,
-  SchemaTemplate,
 } from '../src'
 import type { AcceptOfferOptions } from '../src/modules/credentials'
 import type { IndyOfferCredentialFormat } from '../src/modules/credentials/formats/indy/IndyCredentialFormat'
+import type { SchemaTemplate, CredentialDefinitionTemplate } from '../src/modules/ledger/models/IndyLedgerService'
 import type { Schema, CredDef } from 'indy-sdk'
 import type { Observable } from 'rxjs'
 

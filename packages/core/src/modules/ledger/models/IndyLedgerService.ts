@@ -1,12 +1,4 @@
-import type { IndyEndpointAttrib } from '../services'
-import type {
-  CredentialDefinitionTemplate,
-  ParseRevocationRegistryDefinitionTemplate,
-  ParseRevocationRegistryDeltaTemplate,
-  ParseRevocationRegistryTemplate,
-  SchemaTemplate,
-} from '@aries-framework/core'
-import type { CredDef, GetNymResponse, NymRole, Schema } from 'indy-sdk'
+import type { default as Indy, CredDef, GetNymResponse, NymRole, Schema } from 'indy-sdk'
 
 export const GenericIndyLedgerService = Symbol('GenericIndyLedgerService')
 
@@ -50,4 +42,39 @@ export interface GenericIndyLedgerService {
     revocationRegistryDefinitionId: string,
     timestamp: number
   ): Promise<ParseRevocationRegistryTemplate>
+}
+
+export interface SchemaTemplate {
+  name: string
+  version: string
+  attributes: string[]
+}
+
+export interface CredentialDefinitionTemplate {
+  schema: Schema
+  tag: string
+  signatureType: 'CL'
+  supportRevocation: boolean
+}
+
+export interface ParseRevocationRegistryDefinitionTemplate {
+  revocationRegistryDefinition: Indy.RevocRegDef
+  revocationRegistryDefinitionTxnTime: number
+}
+
+export interface ParseRevocationRegistryDeltaTemplate {
+  revocationRegistryDelta: Indy.RevocRegDelta
+  deltaTimestamp: number
+}
+
+export interface ParseRevocationRegistryTemplate {
+  revocationRegistry: Indy.RevocReg
+  ledgerTimestamp: number
+}
+
+export interface IndyEndpointAttrib {
+  endpoint?: string
+  types?: Array<'endpoint' | 'did-communication' | 'DIDComm'>
+  routingKeys?: string[]
+  [key: string]: unknown
 }

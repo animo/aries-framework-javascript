@@ -1,4 +1,4 @@
-import type { IndyEndpointAttrib } from '../../../../ledger/services/IndyLedgerService'
+import type { IndyEndpointAttrib } from '../../../../ledger/models/IndyLedgerService'
 import type { GetNymResponse } from 'indy-sdk'
 
 import { mockFunction } from '../../../../../../tests/helpers'
