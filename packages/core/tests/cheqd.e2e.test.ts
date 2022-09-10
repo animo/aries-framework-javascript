@@ -31,6 +31,7 @@ const aliceConfig = getBaseConfig('cheqd alice', {
 const faberConfig = getBaseConfig('cheqd faber', {
   logger,
   endpoints: ['rxjs:faber'],
+  publicDidSeed: '00000000000000000000000000000001',
 })
 
 describe('Cheqd', () => {
@@ -68,13 +69,20 @@ describe('Cheqd', () => {
     aliceAgent.events.observable<ProofStateChangedEvent>(ProofEventTypes.ProofStateChanged).subscribe(aliceProofReplay)
 
     const faberWallet = faberAgent.dependencyManager.resolve(IndyWallet)
-    const didInfo = await faberWallet.createDid()
-    const publicDid = await faberAgent.ledger.registerPublicDid(didInfo.did, didInfo.verkey, 'alias', 'TRUST_ANCHOR')
+
+    if (!faberWallet.publicDid) throw new Error('Faber public did not exist')
+
+    const publicDid = await faberAgent.ledger.registerPublicDid(
+      faberWallet.publicDid.did,
+      faberWallet.publicDid.verkey,
+      'alias',
+      'TRUST_ANCHOR'
+    )
 
     expect(publicDid).toMatch(new RegExp('^did:cheqd:testnet:'))
 
     const resolvedPublicDidData = await faberAgent.ledger.getPublicDid(publicDid)
-    expect(resolvedPublicDidData.did).toStrictEqual(didInfo.did)
+    expect(resolvedPublicDidData.did).toStrictEqual(faberWallet.publicDid.did)
 
     console.log(publicDid)
 
@@ -86,21 +94,27 @@ describe('Cheqd', () => {
 
     expect(schema.id.includes('did:cheqd:testnet')).toBe(true)
 
+    console.log(schema)
+
+    // Will error after here because we retrieve the schema when creating a credential definition
     process.exit()
 
-    const retrievedSchema = await faberAgent.ledger.getSchema(schema.id)
-    expect(retrievedSchema).toEqual(schema)
+    // TODO: find out how to read a resource
+    // const retrievedSchema = await faberAgent.ledger.getSchema(schema.id)
+    // expect(retrievedSchema).toEqual(schema)
 
     const credentialDefinition = await faberAgent.ledger.registerCredentialDefinition({
-      schema: retrievedSchema,
+      schema: schema,
       supportRevocation: false,
       tag: 'hello',
     })
 
+    console.log(credentialDefinition)
     expect(credentialDefinition.id.includes('did:cheqd:testnet')).toBe(true)
-    const retrievedCredentialDefinition = await faberAgent.ledger.getCredentialDefinition(credentialDefinition.id)
 
-    expect(retrievedCredentialDefinition).toEqual(credentialDefinition)
+    // TODO: find out how to read a resource
+    // const retrievedCredentialDefinition = await faberAgent.ledger.getCredentialDefinition(credentialDefinition.id)
+    // expect(retrievedCredentialDefinition).toEqual(credentialDefinition)
 
     const faberOutOfBandRecord = await faberAgent.oob.createInvitation()
 

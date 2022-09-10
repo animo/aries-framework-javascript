@@ -22,8 +22,8 @@ export type CheqdSchemaResourceData = {
     objectFamily: 'anoncreds'
     objectFamilyVersion: 'v2'
     objectType: '2'
-    publisherDid: `did:cheqd:testnet:${string}`
-    objectURI: `did:cheqd:testnet:${string}/resources/${string}`
+    publisherDid: string
+    objectURI: string
   }
 }
 
@@ -48,8 +48,8 @@ export type CheqdCredDefResourceData = {
     objectFamily: 'anoncreds'
     objectFamilyVersion: 'v2'
     objectType: '3'
-    publisherDid: `did:cheqd:testnet:${string}`
-    objectURI: `did:cheqd:testnet:${string}/resources/${string}`
+    publisherDid: string
+    objectURI: string
   }
 }
 

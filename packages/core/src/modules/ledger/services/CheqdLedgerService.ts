@@ -38,14 +38,12 @@ import { generateKeyPairFromSeed } from '@stablelib/ed25519'
 import { fromString, toString } from 'uint8arrays'
 
 import { AgentConfig } from '../../../agent/AgentConfig'
-import { KeyType } from '../../../crypto'
 import { AriesFrameworkError } from '../../../error'
 import { injectable } from '../../../plugins'
 import { indyDidFromPublicKeyBase58, JsonEncoder, MultiBaseEncoder, TypedArrayEncoder } from '../../../utils'
 import { uuid } from '../../../utils/uuid'
 import { IndyWallet } from '../../../wallet/IndyWallet'
 import { IndyCredentialUtils } from '../../credentials/formats/indy/IndyCredentialUtils'
-import { Key } from '../../dids/domain/Key'
 import {
   indySchemaIdFromSchemaResource,
   indyCredentialDefinitionFromCredentialDefinitionResource,
@@ -102,27 +100,37 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     this.indy = agentConfig.agentDependencies.indy
     this.logger = agentConfig.logger
     this.config = agentConfig
+  }
+
+  private async getCheqdDid() {
+    if (this.cheqdDid) return this.cheqdDid
+
+    if (!this.config.publicDidSeed) {
+      throw new AriesFrameworkError("Can't create DID without publicDidSeed")
+    }
 
     // Set cheqd key pair and public cheqd did
-    if (this.config.publicDidSeed) {
-      const seed = this.config.publicDidSeed
-      const keyPair = generateKeyPairFromSeed(TypedArrayEncoder.fromString(seed))
+    const seed = this.config.publicDidSeed
+    const keyPair = generateKeyPairFromSeed(TypedArrayEncoder.fromString(seed))
 
-      this.cheqdKeyPair = {
-        publicKey: toString(keyPair.publicKey, 'base64'),
-        privateKey: toString(keyPair.secretKey, 'base64'),
-      }
-
-      void this.indy.createKey(this.wallet.handle, { seed }).then((indyVerkey) => {
-        const indyKeyPair: IKeyPair = {
-          publicKey: TypedArrayEncoder.toBase64(TypedArrayEncoder.fromBase58(indyVerkey)),
-          privateKey: ':)',
-        }
-
-        const indyVerificationKey = createVerificationKeys(indyKeyPair, MethodSpecificIdAlgo.Base58, 'indykey-1')
-        this.cheqdDid = indyVerificationKey.didUrl
-      })
+    this.cheqdKeyPair = {
+      publicKey: toString(keyPair.publicKey, 'base64'),
+      privateKey: toString(keyPair.secretKey, 'base64'),
     }
+
+    const indyKey = this.wallet.publicDid
+    if (!indyKey) throw new AriesFrameworkError('No public did found')
+
+    const indyKeyPair: IKeyPair = {
+      publicKey: TypedArrayEncoder.toBase64(TypedArrayEncoder.fromBase58(indyKey.verkey)),
+      privateKey: ':)',
+    }
+
+    const indyVerificationKey = createVerificationKeys(indyKeyPair, MethodSpecificIdAlgo.Base58, 'indykey-1')
+
+    console.log('cheqd did is ', indyVerificationKey.didUrl)
+    this.cheqdDid = indyVerificationKey.didUrl
+    return this.cheqdDid
   }
 
   private async getCheqdSDK(fee?: DidStdFee): Promise<CheqdSDK> {
@@ -132,7 +140,7 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     if (this.sdk) return this.sdk
 
     const sdkOptions: ICheqdSDKOptions = {
-      modules: [DIDModule as unknown as AbstractCheqdSDKModule],
+      modules: [DIDModule as unknown as AbstractCheqdSDKModule, ResourceModule as unknown as AbstractCheqdSDKModule],
       rpcUrl: RPC_URL,
       wallet: COSMOS_PAYER_WALLET,
     }
@@ -165,9 +173,6 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
   // TODO-CHEQD: integrate with cheqd sdk
   public async getCredentialDefinitionResource(credentialDefinitionId: string): Promise<CredentialDefinitionResource> {
     const sdk = await this.getCheqdSDK()
-
-    const resourceModule = new ResourceModule(sdk.signer)
-    resourceModule.createResourceTx
 
     const resource = resourceRegistry.credentialDefinitions[credentialDefinitionId]
 
@@ -203,21 +208,29 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     role?: Indy.NymRole,
     fee?: DidStdFee
   ): Promise<string> {
-    const seed = this.config.publicDidSeed
-    assert(seed ? seed.length > 0 : false, 'NO SEED PROVIDED IN THE AGENT CONFIG')
     // TODO-CHEQD: create/get a keypair from wallet
     // TODO-CHEQD: create keypair from seed to have consistent did (should be in constructor)
-    const cheqdKeyPair = createKeyPairBase64()
-    this.cheqdKeyPair = cheqdKeyPair
+
+    const cheqdDid = await this.getCheqdDid()
+    const cheqdKeyPair = this.cheqdKeyPair!
+
+    const indyDid = this.wallet.publicDid
+    if (!indyDid) throw new AriesFrameworkError('No public did found')
 
     const indyKeyPair: IKeyPair = {
-      publicKey: TypedArrayEncoder.toBase64(TypedArrayEncoder.fromBase58(verkey)),
+      publicKey: TypedArrayEncoder.toBase64(TypedArrayEncoder.fromBase58(indyDid.verkey)),
       privateKey: ':)',
     }
 
     const indyVerificationKey = createVerificationKeys(indyKeyPair, MethodSpecificIdAlgo.Base58, 'indykey-1')
     const cheqdVerificationKey = createVerificationKeys(cheqdKeyPair, MethodSpecificIdAlgo.Base58, 'key-2')
     const verificationKeys = [indyVerificationKey]
+
+    console.log('did info', {
+      indy: indyVerificationKey.didUrl,
+      cheqd: cheqdVerificationKey.didUrl,
+      cheqdDidPublic: cheqdDid,
+    })
 
     const verificationMethods = createDidVerificationMethod(
       [VerificationMethods.Base58, VerificationMethods.Base58],
@@ -270,12 +283,8 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     }
   }
 
-  public async registerSchema(indyDid: string, schemaTemplate: SchemaTemplate): Promise<Indy.Schema> {
-    // This part transform the indy did into the cheqd did in a hacky way. In the future we should pass the cheqd did directly,
-    // But that requires better integration with the did module
-    // Get the verkey for the provided indy did
-    const verkey = await this.indy.keyForLocalDid(this.wallet.handle, indyDid)
-    const cheqdDidIdentifier = Key.fromPublicKeyBase58(verkey, KeyType.Ed25519).fingerprint.substring(0, 32)
+  public async registerSchema(_: string, schemaTemplate: SchemaTemplate): Promise<Indy.Schema> {
+    const cheqdDid = await this.getCheqdDid()
 
     const resourceId = uuid()
     const resourceData: CheqdSchemaResourceData = {
@@ -288,12 +297,12 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
         objectFamily: 'anoncreds',
         objectFamilyVersion: 'v2',
         objectType: '2',
-        objectURI: `did:cheqd:testnet:${cheqdDidIdentifier}/resources/${resourceId}`,
-        publisherDid: `did:cheqd:testnet:${cheqdDidIdentifier}`,
+        objectURI: `${cheqdDid}/resources/${resourceId}`,
+        publisherDid: cheqdDid,
       },
     }
 
-    const cheqdDid = `did:cheqd:testnet:the-did-identifier` // TODO: should be registered did cheqd (probably from config)
+    const indyDid = await this.getPublicDid(cheqdDid)
 
     const indySchemaId = `${indyDid}:2:${schemaTemplate.name}:${schemaTemplate.version}`
     const txnId = Number(IndyCredentialUtils.encode(indySchemaId).substring(0, 6))
@@ -305,6 +314,7 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
       resourceType: 'CL-Schema',
       data: JsonEncoder.toBuffer(resourceData),
     }
+
     await this.writeTxResource(resourcePayload)
 
     return {
@@ -321,10 +331,10 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
     indyDid: string,
     credentialDefinitionTemplate: CredentialDefinitionTemplate
   ): Promise<Indy.CredDef> {
+    const cheqdDid = await this.getCheqdDid()
     const { schema, tag, signatureType, supportRevocation } = credentialDefinitionTemplate
 
     const indySchemaId = await this.indySchemaIdFromCheqdSchemaId(schema.id)
-    const cheqdDid = `did:cheqd:testnet:the-did-identifier` // TODO: should be registered did cheqd (probably from config)
 
     const indySchema: Indy.Schema = {
       ...schema,
@@ -384,18 +394,16 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
   }
 
   private async writeTxResource(resourcePayload: MsgCreateResourcePayload) {
-    if (!this.verificationMethods) throw new AriesFrameworkError('Missing verification methods')
-    if (!this.verificationKeys) throw new AriesFrameworkError('Missing verification keys')
     if (!this.cheqdKeyPair) throw new AriesFrameworkError('Missing verification keys')
 
-    const didPayload = createDidPayload(this.verificationMethods, [this.verificationKeys])
-
     this.logger.warn(`Using payload: ${JSON.stringify(resourcePayload)}`)
+
+    const cheqdDid = await this.getCheqdDid()
 
     const sdk = await this.getCheqdSDK()
     const resourceSignInputs: ISignInputs[] = [
       {
-        verificationMethodId: didPayload.verificationMethod[0].id,
+        verificationMethodId: cheqdDid + '#key-2',
         keyType: 'Ed25519',
         privateKeyHex: toString(fromString(this.cheqdKeyPair.privateKey, 'base64'), 'hex'),
       },
