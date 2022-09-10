@@ -31,7 +31,7 @@ const aliceConfig = getBaseConfig('cheqd alice', {
 const faberConfig = getBaseConfig('cheqd faber', {
   logger,
   endpoints: ['rxjs:faber'],
-  publicDidSeed: '00000000000000000000000000000001',
+  publicDidSeed: '00000000000000000000000000000016',
 })
 
 describe('Cheqd', () => {
@@ -96,12 +96,10 @@ describe('Cheqd', () => {
 
     console.log(schema)
 
-    // Will error after here because we retrieve the schema when creating a credential definition
-    process.exit()
+    const retrievedSchema = await faberAgent.ledger.getSchema(schema.id)
+    expect(retrievedSchema).toEqual(schema)
 
-    // TODO: find out how to read a resource
-    // const retrievedSchema = await faberAgent.ledger.getSchema(schema.id)
-    // expect(retrievedSchema).toEqual(schema)
+    console.log(retrievedSchema)
 
     const credentialDefinition = await faberAgent.ledger.registerCredentialDefinition({
       schema: schema,
@@ -112,9 +110,8 @@ describe('Cheqd', () => {
     console.log(credentialDefinition)
     expect(credentialDefinition.id.includes('did:cheqd:testnet')).toBe(true)
 
-    // TODO: find out how to read a resource
-    // const retrievedCredentialDefinition = await faberAgent.ledger.getCredentialDefinition(credentialDefinition.id)
-    // expect(retrievedCredentialDefinition).toEqual(credentialDefinition)
+    const retrievedCredentialDefinition = await faberAgent.ledger.getCredentialDefinition(credentialDefinition.id)
+    expect(retrievedCredentialDefinition).toEqual(credentialDefinition)
 
     const faberOutOfBandRecord = await faberAgent.oob.createInvitation()
 

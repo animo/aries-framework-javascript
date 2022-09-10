@@ -103,7 +103,7 @@ export class IndyIssuerService {
       return {
         ...offer,
         cred_def_id: credentialDefinitionId,
-        schema_id: credDefResource.data.AnonCredsCredDef.schemaId,
+        schema_id: credDefResource.AnonCredsCredDef.schemaId,
       }
     } catch (error) {
       throw isIndyError(error) ? new IndySdkError(error) : error
@@ -126,7 +126,7 @@ export class IndyIssuerService {
       credentialRequest.cred_def_id
     )
     const indySchemaId = await this.ledgerService.indySchemaIdFromCheqdSchemaId(
-      credentialDefinitionResource.data.AnonCredsCredDef.schemaId
+      credentialDefinitionResource.AnonCredsCredDef.schemaId
     )
     const indyCredDefId = await this.ledgerService.indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(
       credentialRequest.cred_def_id

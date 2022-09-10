@@ -1,11 +1,6 @@
 /* eslint-disable no-console */
 import type { Logger } from '../../../logger'
-import type {
-  CheqdCredDefResourceData,
-  CheqdSchemaResourceData,
-  CredentialDefinitionResource,
-  SchemaResource,
-} from '../cheqd/cheqdIndyUtils'
+import type { CheqdCredDefResourceData, CheqdSchemaResourceData } from '../cheqd/cheqdIndyUtils'
 import type {
   GenericIndyLedgerService,
   IndyEndpointAttrib,
@@ -29,11 +24,10 @@ import { MethodSpecificIdAlgo, VerificationMethods } from '@cheqd/sdk/build/type
 import {
   createDidPayload,
   createDidVerificationMethod,
-  createKeyPairBase64,
   createVerificationKeys,
   createSignInputsFromImportableEd25519Key,
 } from '@cheqd/sdk/build/utils'
-import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing'
+import { DirectSecp256k1HdWallet, EncodeObject } from '@cosmjs/proto-signing'
 import { generateKeyPairFromSeed } from '@stablelib/ed25519'
 import { fromString, toString } from 'uint8arrays'
 
@@ -44,12 +38,7 @@ import { indyDidFromPublicKeyBase58, JsonEncoder, MultiBaseEncoder, TypedArrayEn
 import { uuid } from '../../../utils/uuid'
 import { IndyWallet } from '../../../wallet/IndyWallet'
 import { IndyCredentialUtils } from '../../credentials/formats/indy/IndyCredentialUtils'
-import {
-  indySchemaIdFromSchemaResource,
-  indyCredentialDefinitionFromCredentialDefinitionResource,
-  indySchemaFromSchemaResource,
-  resourceRegistry,
-} from '../cheqd/cheqdIndyUtils'
+import { resourceRegistry } from '../cheqd/cheqdIndyUtils'
 
 // --------------
 
@@ -150,54 +139,62 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
       amount: [
         {
           denom: faucet.minimalDenom,
-          amount: '5000000',
+          amount: '12500000',
         },
       ],
-      gas: '200000',
+      gas: '500000',
       payer: (await sdkOptions.wallet.getAccounts())[0].address,
     }
     return this.sdk
   }
 
-  // TODO-CHEQD: integrate with cheqd-sdk
-  public async getSchemaResource(schemaId: string): Promise<SchemaResource> {
-    const resource = resourceRegistry.schemas[schemaId]
-
-    if (!resource) {
-      throw new AriesFrameworkError(`Schema with id ${schemaId} not found`)
+  public async getSchemaResource(schemaId: string): Promise<CheqdSchemaResourceData> {
+    if (resourceRegistry.schemas[schemaId]) {
+      return resourceRegistry.schemas[schemaId]
     }
 
-    return resource
+    // http://localhost:8080/1.0/identifiers/did:cheqd:testnet:zCptjtSLBcJyLuHN8SQYfCg9VnYRqVPn/resources/d716b340-eec0-4380-9448-d05b087cf851
+    const schema: CheqdSchemaResourceData = await (
+      await this.config.agentDependencies.fetch(`http://localhost:8080/1.0/identifiers/${schemaId}`)
+    ).json()
+
+    resourceRegistry.schemas[schemaId] = schema
+    return schema
   }
 
   // TODO-CHEQD: integrate with cheqd sdk
-  public async getCredentialDefinitionResource(credentialDefinitionId: string): Promise<CredentialDefinitionResource> {
-    const sdk = await this.getCheqdSDK()
-
-    const resource = resourceRegistry.credentialDefinitions[credentialDefinitionId]
-
-    if (!resource) {
-      throw new AriesFrameworkError(`Credential definition with id ${credentialDefinitionId} not found`)
+  public async getCredentialDefinitionResource(credentialDefinitionId: string): Promise<CheqdCredDefResourceData> {
+    if (resourceRegistry.credentialDefinitions[credentialDefinitionId]) {
+      return resourceRegistry.credentialDefinitions[credentialDefinitionId]
     }
 
-    return resource
+    // http://localhost:8080/1.0/identifiers/did:cheqd:testnet:zCptjtSLBcJyLuHN8SQYfCg9VnYRqVPn/resources/d716b340-eec0-4380-9448-d05b087cf851
+    const credentialDefinition: CheqdCredDefResourceData = await (
+      await this.config.agentDependencies.fetch(`http://localhost:8080/1.0/identifiers/${credentialDefinitionId}`)
+    ).json()
+
+    resourceRegistry.credentialDefinitions[credentialDefinitionId] = credentialDefinition
+    return credentialDefinition
   }
 
   public async indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(cheqdCredDefId: string) {
     const credDefResource = await this.getCredentialDefinitionResource(cheqdCredDefId)
-    const schemaResource = await this.getSchemaResource(credDefResource.data.AnonCredsCredDef.schemaId)
+    const schemaResource = await this.getSchemaResource(credDefResource.AnonCredsCredDef.schemaId)
+    const indyDid = await this.getPublicDid(cheqdCredDefId.split('/')[0])
 
-    const schemaId = indySchemaIdFromSchemaResource(schemaResource)
-    const txnId = IndyCredentialUtils.encode(schemaId).substring(0, 6)
+    const indySchemaId = `${indyDid.did}:2:${schemaResource.AnonCredsSchema.name}:${schemaResource.AnonCredsSchema.version}`
+    console.log('Creating txnId from ' + indySchemaId)
+    const txnId = IndyCredentialUtils.encode(indySchemaId).substring(0, 6)
 
-    const credentialDefinitionId = `${credDefResource._indyData.did}:3:CL:${txnId}:${credDefResource.data.AnonCredsCredDef.tag}`
+    const credentialDefinitionId = `${indyDid.did}:3:CL:${txnId}:${credDefResource.AnonCredsCredDef.tag}`
     return credentialDefinitionId
   }
 
   public async indySchemaIdFromCheqdSchemaId(cheqdSchemaId: string) {
     const schemaResource = await this.getSchemaResource(cheqdSchemaId)
-    const schemaId = indySchemaIdFromSchemaResource(schemaResource)
-    return schemaId
+    const indyDid = await this.getPublicDid(cheqdSchemaId.split('/')[0])
+    const indySchemaId = `${indyDid.did}:2:${schemaResource.AnonCredsSchema.name}:${schemaResource.AnonCredsSchema.version}`
+    return indySchemaId
   }
 
   public async registerPublicDid(
@@ -304,7 +301,8 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
     const indyDid = await this.getPublicDid(cheqdDid)
 
-    const indySchemaId = `${indyDid}:2:${schemaTemplate.name}:${schemaTemplate.version}`
+    const indySchemaId = `${indyDid.did}:2:${schemaTemplate.name}:${schemaTemplate.version}`
+    console.log('Creating txnId from ' + indySchemaId)
     const txnId = Number(IndyCredentialUtils.encode(indySchemaId).substring(0, 6))
 
     const resourcePayload: MsgCreateResourcePayload = {
@@ -383,14 +381,28 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
   public async getSchema(schemaId: string): Promise<Indy.Schema> {
     const resource = await this.getSchemaResource(schemaId)
+    const indyDid = await this.getPublicDid(schemaId.split('/')[0])
+    const indySchemaId = `${indyDid.did}:2:${resource.AnonCredsSchema.name}:${resource.AnonCredsSchema.version}`
+    console.log('Creating txnId from ' + indySchemaId)
+    const txnId = Number(IndyCredentialUtils.encode(indySchemaId).substring(0, 6))
 
-    return indySchemaFromSchemaResource(resource)
+    return {
+      id: resource.AnonCredsObjectMetadata.objectURI,
+      attrNames: resource.AnonCredsSchema.attr_names,
+      name: resource.AnonCredsSchema.name,
+      seqNo: txnId,
+      ver: resource.AnonCredsSchema.version,
+      version: resource.AnonCredsSchema.version,
+    }
   }
 
   public async getCredentialDefinition(credentialDefinitionId: string): Promise<Indy.CredDef> {
     const resource = await this.getCredentialDefinitionResource(credentialDefinitionId)
 
-    return indyCredentialDefinitionFromCredentialDefinitionResource(resource)
+    return {
+      ...resource.AnonCredsCredDef,
+      id: resource.AnonCredsObjectMetadata.objectURI,
+    }
   }
 
   private async writeTxResource(resourcePayload: MsgCreateResourcePayload) {
@@ -420,10 +432,11 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
         amount: [
           {
             denom: 'ncheq',
-            amount: '5000000',
+            amount: '12500000',
           },
         ],
-        gas: '200000',
+        // TODO: calculate gas or something?
+        gas: '500000',
         payer: address,
       }
     )

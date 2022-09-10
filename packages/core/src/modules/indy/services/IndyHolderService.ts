@@ -376,7 +376,7 @@ export class IndyHolderService {
 
         for (const credential of credentials) {
           credential.cred_info.cred_def_id = credDefId
-          credential.cred_info.schema_id = credDefResource.data.AnonCredsCredDef.schemaId
+          credential.cred_info.schema_id = credDefResource.AnonCredsCredDef.schemaId
         }
 
         // TODO: sort the credentials (irrevocable first)
