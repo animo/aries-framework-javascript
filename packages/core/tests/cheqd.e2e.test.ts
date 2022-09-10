@@ -31,7 +31,7 @@ const aliceConfig = getBaseConfig('cheqd alice', {
 const faberConfig = getBaseConfig('cheqd faber', {
   logger,
   endpoints: ['rxjs:faber'],
-  publicDidSeed: '00000000000000000000000000000016',
+  publicDidSeed: '00000000000000000000000000000017',
 })
 
 describe('Cheqd', () => {

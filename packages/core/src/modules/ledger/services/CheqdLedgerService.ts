@@ -155,7 +155,7 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
     // http://localhost:8080/1.0/identifiers/did:cheqd:testnet:zCptjtSLBcJyLuHN8SQYfCg9VnYRqVPn/resources/d716b340-eec0-4380-9448-d05b087cf851
     const schema: CheqdSchemaResourceData = await (
-      await this.config.agentDependencies.fetch(`http://localhost:8080/1.0/identifiers/${schemaId}`)
+      await this.config.agentDependencies.fetch(`https://cheqd-resolver.dev.animo.id/1.0/identifiers/${schemaId}`)
     ).json()
 
     resourceRegistry.schemas[schemaId] = schema
@@ -170,7 +170,9 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
     // http://localhost:8080/1.0/identifiers/did:cheqd:testnet:zCptjtSLBcJyLuHN8SQYfCg9VnYRqVPn/resources/d716b340-eec0-4380-9448-d05b087cf851
     const credentialDefinition: CheqdCredDefResourceData = await (
-      await this.config.agentDependencies.fetch(`http://localhost:8080/1.0/identifiers/${credentialDefinitionId}`)
+      await this.config.agentDependencies.fetch(
+        `https://cheqd-resolver.dev.animo.id/1.0/identifiers/${credentialDefinitionId}`
+      )
     ).json()
 
     resourceRegistry.credentialDefinitions[credentialDefinitionId] = credentialDefinition
@@ -264,7 +266,9 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
   public async getPublicDid(did: string): Promise<Indy.GetNymResponse> {
     const didDoc: DIDDocument = (
-      await (await this.config.agentDependencies.fetch(`https://dev.uniresolver.io/1.0/identifiers/${did}`)).json()
+      await (
+        await this.config.agentDependencies.fetch(`https://cheqd-resolver.dev.animo.id/1.0/identifiers/${did}`)
+      ).json()
     ).didDocument
     const didDocData = (didDoc.verificationMethod ?? []).find((v) => v.id.endsWith('indykey-1'))
     if (!didDocData) throw new AriesFrameworkError('NO indykey-1 FOUND IN THE VERIFICATION METHODS')
