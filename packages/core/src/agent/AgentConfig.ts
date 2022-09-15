@@ -39,6 +39,10 @@ export class AgentConfig {
     }
   }
 
+  public get ledgerType() {
+    return this.initConfig.ledgerType ?? 'indy'
+  }
+
   public get connectToIndyLedgersOnStartup() {
     return this.initConfig.connectToIndyLedgersOnStartup ?? true
   }
@@ -49,6 +53,10 @@ export class AgentConfig {
 
   public get indyLedgers() {
     return this.initConfig.indyLedgers ?? []
+  }
+
+  public get cheqdConfig() {
+    return this.initConfig.cheqdConfig ?? null
   }
 
   public get walletConfig() {

@@ -3,7 +3,7 @@ import type { GetNymResponse } from 'indy-sdk'
 
 import { mockFunction } from '../../../../../../tests/helpers'
 import { JsonTransformer } from '../../../../../utils/JsonTransformer'
-import { IndyLedgerService } from '../../../../ledger/services/IndyLedgerService'
+import { IndyLedgerService } from '../../../../ledger/services/indy/IndyLedgerService'
 import didSovR1xKJw17sUoXhejEpugMYJFixture from '../../../__tests__/__fixtures__/didSovR1xKJw17sUoXhejEpugMYJ.json'
 import didSovWJz9mHyW9BZksioQnRsrAoFixture from '../../../__tests__/__fixtures__/didSovWJz9mHyW9BZksioQnRsrAo.json'
 import { parseDid } from '../../../domain/parse'

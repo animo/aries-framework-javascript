@@ -3,14 +3,14 @@ import type { RequestedCredentials } from '../../proofs'
 import type * as Indy from 'indy-sdk'
 
 import { AgentConfig } from '../../../agent/AgentConfig'
+import { InjectionSymbols } from '../../../constants'
 import { IndySdkError } from '../../../error/IndySdkError'
 import { inject, injectable } from '../../../plugins'
 import { isIndyError } from '../../../utils/indyError'
 import { IndyWallet } from '../../../wallet/IndyWallet'
+import { CheqdLedgerService } from '../../ledger'
 
 import { IndyRevocationService } from './IndyRevocationService'
-import { CheqdLedgerService } from '../../ledger'
-import { GenericIndyLedgerService } from '../../ledger/models/IndyLedgerService'
 
 @injectable()
 export class IndyHolderService {
@@ -23,7 +23,7 @@ export class IndyHolderService {
     agentConfig: AgentConfig,
     indyRevocationService: IndyRevocationService,
     wallet: IndyWallet,
-    @inject(GenericIndyLedgerService) private ledgerService: CheqdLedgerService
+    @inject(InjectionSymbols.GenericIndyLedgerService) private ledgerService: CheqdLedgerService
   ) {
     this.indy = agentConfig.agentDependencies.indy
     this.wallet = wallet

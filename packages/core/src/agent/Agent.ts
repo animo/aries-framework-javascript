@@ -23,6 +23,7 @@ import { DidsModule } from '../modules/dids/DidsModule'
 import { DiscoverFeaturesModule } from '../modules/discover-features'
 import { GenericRecordsModule } from '../modules/generic-records/GenericRecordsModule'
 import { IndyModule } from '../modules/indy/module'
+import { CheqdLedgerService, CheqdPool, IndyLedgerService, IndyPoolService } from '../modules/ledger'
 import { LedgerModule } from '../modules/ledger/LedgerModule'
 import { OutOfBandModule } from '../modules/oob/OutOfBandModule'
 import { ProofsModule } from '../modules/proofs/ProofsModule'
@@ -212,9 +213,7 @@ export class Agent {
 
     // As long as value isn't false we will async connect to all genesis pools on startup
     if (connectToIndyLedgersOnStartup) {
-      this.ledger.connectToPools().catch((error) => {
-        this.logger.warn('Error connecting to ledger, will try to reconnect when needed.', { error })
-      })
+      await this.ledger.connectToPools()
     }
 
     for (const transport of this.inboundTransports) {
@@ -331,6 +330,15 @@ export class Agent {
     }
     if (!dependencyManager.isRegistered(InjectionSymbols.MessageRepository)) {
       dependencyManager.registerSingleton(InjectionSymbols.MessageRepository, InMemoryMessageRepository)
+    }
+    if (!dependencyManager.isRegistered(InjectionSymbols.GenericIndyLedgerService)) {
+      if (this.agentConfig.ledgerType === 'indy') {
+        dependencyManager.registerSingleton(InjectionSymbols.GenericIndyLedgerService, IndyLedgerService)
+        dependencyManager.registerSingleton(IndyPoolService)
+      } else {
+        dependencyManager.registerSingleton(InjectionSymbols.GenericIndyLedgerService, CheqdLedgerService)
+        dependencyManager.registerSingleton(CheqdPool)
+      }
     }
 
     // Register all modules

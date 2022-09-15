@@ -1,9 +1,9 @@
 import type { default as Indy, CredDef, GetNymResponse, NymRole, Schema } from 'indy-sdk'
 
-export const GenericIndyLedgerService = Symbol('GenericIndyLedgerService')
+// export const GenericIndyLedgerService = Symbol('GenericIndyLedgerService')
 
 export interface GenericIndyLedgerService {
-  connectToPools(): Promise<Array<number>>
+  connectToPools(): Promise<Array<number> | void>
 
   registerPublicDid(
     submitterDid: string,

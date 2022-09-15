@@ -8,7 +8,6 @@ import { injectable, module, inject } from '../../plugins'
 import { Wallet } from '../../wallet/Wallet'
 
 import { GenericIndyLedgerService } from './models/IndyLedgerService'
-import { CheqdLedgerService, IndyPoolService, IndyLedgerService } from './services'
 
 @module()
 @injectable()
@@ -18,7 +17,7 @@ export class LedgerModule {
 
   public constructor(
     @inject(InjectionSymbols.Wallet) wallet: Wallet,
-    @inject(GenericIndyLedgerService) ledgerService: GenericIndyLedgerService
+    @inject(InjectionSymbols.GenericIndyLedgerService) ledgerService: GenericIndyLedgerService
   ) {
     this.ledgerService = ledgerService
     this.wallet = wallet
@@ -98,10 +97,10 @@ export class LedgerModule {
     dependencyManager.registerContextScoped(LedgerModule)
 
     // Services
-    dependencyManager.registerSingleton(GenericIndyLedgerService, CheqdLedgerService)
-    dependencyManager.registerSingleton(IndyLedgerService)
+    // dependencyManager.registerSingleton(GenericIndyLedgerService, CheqdLedgerService)
+    // dependencyManager.registerSingleton(IndyLedgerService)
 
     // TODO-CHEQD: do we need this?
-    dependencyManager.registerSingleton(IndyPoolService)
+    // dependencyManager.registerSingleton(IndyPoolService)
   }
 }

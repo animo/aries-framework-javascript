@@ -72,7 +72,7 @@ export class ProofService {
 
   public constructor(
     proofRepository: ProofRepository,
-    @inject(GenericIndyLedgerService) ledgerService: GenericIndyLedgerService,
+    @inject(InjectionSymbols.GenericIndyLedgerService) ledgerService: GenericIndyLedgerService,
     @inject(InjectionSymbols.Wallet) wallet: Wallet,
     agentConfig: AgentConfig,
     indyHolderService: IndyHolderService,

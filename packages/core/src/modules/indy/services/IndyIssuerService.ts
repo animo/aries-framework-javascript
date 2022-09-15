@@ -12,13 +12,13 @@ import type {
 } from 'indy-sdk'
 
 import { AgentConfig } from '../../../agent/AgentConfig'
+import { InjectionSymbols } from '../../../constants'
 import { AriesFrameworkError } from '../../../error/AriesFrameworkError'
 import { IndySdkError } from '../../../error/IndySdkError'
 import { inject, injectable } from '../../../plugins'
 import { isIndyError } from '../../../utils/indyError'
 import { IndyWallet } from '../../../wallet/IndyWallet'
-import { GenericIndyLedgerService } from '../../ledger/models/IndyLedgerService'
-import { CheqdLedgerService } from '../../ledger/services/CheqdLedgerService'
+import { CheqdLedgerService } from '../../ledger/services/cheqd/CheqdLedgerService'
 
 import { IndyUtilitiesService } from './IndyUtilitiesService'
 
@@ -33,7 +33,7 @@ export class IndyIssuerService {
     agentConfig: AgentConfig,
     wallet: IndyWallet,
     indyUtilitiesService: IndyUtilitiesService,
-    @inject(GenericIndyLedgerService) private ledgerService: CheqdLedgerService
+    @inject(InjectionSymbols.GenericIndyLedgerService) private ledgerService: CheqdLedgerService
   ) {
     this.indy = agentConfig.agentDependencies.indy
     this.wallet = wallet

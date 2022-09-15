@@ -1,5 +1,5 @@
-import type { IndyPoolConfig } from '../IndyPool'
-import type { CachedDidResponse } from '../services/IndyPoolService'
+import type { IndyPoolConfig } from '../services/indy/IndyPool'
+import type { CachedDidResponse } from '../services/indy/IndyPoolService'
 
 import { getAgentConfig, mockFunction } from '../../../../tests/helpers'
 import { CacheRecord } from '../../../cache'
@@ -9,7 +9,7 @@ import { IndyWallet } from '../../../wallet/IndyWallet'
 import { LedgerError } from '../error/LedgerError'
 import { LedgerNotConfiguredError } from '../error/LedgerNotConfiguredError'
 import { LedgerNotFoundError } from '../error/LedgerNotFoundError'
-import { DID_POOL_CACHE_ID, IndyPoolService } from '../services/IndyPoolService'
+import { DID_POOL_CACHE_ID, IndyPoolService } from '../services/indy/IndyPoolService'
 
 import { getDidResponsesForDid } from './didResponses'
 

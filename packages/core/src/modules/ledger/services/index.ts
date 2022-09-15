@@ -1,3 +1,2 @@
-export * from './IndyLedgerService'
-export * from './IndyPoolService'
-export * from './CheqdLedgerService'
+export * from './indy'
+export * from './cheqd'

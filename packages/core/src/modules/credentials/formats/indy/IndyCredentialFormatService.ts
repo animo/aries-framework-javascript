@@ -64,7 +64,7 @@ export class IndyCredentialFormatService extends CredentialFormatService<IndyCre
     credentialRepository: CredentialRepository,
     eventEmitter: EventEmitter,
     indyIssuerService: IndyIssuerService,
-    @inject(GenericIndyLedgerService) indyLedgerService: GenericIndyLedgerService,
+    @inject(InjectionSymbols.GenericIndyLedgerService) indyLedgerService: GenericIndyLedgerService,
     indyHolderService: IndyHolderService,
     connectionService: ConnectionService,
     didResolver: DidResolverService,

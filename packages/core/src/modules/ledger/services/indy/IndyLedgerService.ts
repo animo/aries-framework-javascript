@@ -1,5 +1,5 @@
-import type { Logger } from '../../../logger'
-import type { AcceptanceMechanisms, AuthorAgreement, IndyPool } from '../IndyPool'
+import type { Logger } from '../../../../logger'
+import type { AcceptanceMechanisms, AuthorAgreement, IndyPool } from './IndyPool'
 import type {
   CredentialDefinitionTemplate,
   GenericIndyLedgerService,
@@ -8,7 +8,7 @@ import type {
   ParseRevocationRegistryDeltaTemplate,
   ParseRevocationRegistryTemplate,
   SchemaTemplate,
-} from '../models/IndyLedgerService'
+} from '../../models/IndyLedgerService'
 import type {
   default as Indy,
   CredDef,
@@ -19,18 +19,18 @@ import type {
   Schema,
 } from 'indy-sdk'
 
-import { AgentConfig } from '../../../agent/AgentConfig'
-import { IndySdkError } from '../../../error/IndySdkError'
-import { injectable } from '../../../plugins'
+import { AgentConfig } from '../../../../agent/AgentConfig'
+import { IndySdkError } from '../../../../error/IndySdkError'
+import { injectable } from '../../../../plugins'
 import {
   didFromSchemaId,
   didFromCredentialDefinitionId,
   didFromRevocationRegistryDefinitionId,
-} from '../../../utils/did'
-import { isIndyError } from '../../../utils/indyError'
-import { IndyWallet } from '../../../wallet/IndyWallet'
-import { IndyIssuerService } from '../../indy/services/IndyIssuerService'
-import { LedgerError } from '../error/LedgerError'
+} from '../../../../utils/did'
+import { isIndyError } from '../../../../utils/indyError'
+import { IndyWallet } from '../../../../wallet/IndyWallet'
+import { IndyIssuerService } from '../../../indy/services/IndyIssuerService'
+import { LedgerError } from '../../error/LedgerError'
 
 import { IndyPoolService } from './IndyPoolService'
 

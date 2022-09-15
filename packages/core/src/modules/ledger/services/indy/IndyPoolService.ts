@@ -1,17 +1,16 @@
-import type { Logger } from '../../../logger/Logger'
+import type { Logger } from '../../../../logger/Logger'
 import type * as Indy from 'indy-sdk'
 
-import { AgentConfig } from '../../../agent/AgentConfig'
-import { CacheRepository, PersistedLruCache } from '../../../cache'
-import { IndySdkError } from '../../../error/IndySdkError'
-import { injectable } from '../../../plugins'
-import { isSelfCertifiedDid } from '../../../utils/did'
-import { isIndyError } from '../../../utils/indyError'
-import { allSettled, onlyFulfilled, onlyRejected } from '../../../utils/promises'
-import { IndyPool } from '../IndyPool'
-import { LedgerError } from '../error/LedgerError'
-import { LedgerNotConfiguredError } from '../error/LedgerNotConfiguredError'
-import { LedgerNotFoundError } from '../error/LedgerNotFoundError'
+import { AgentConfig } from '../../../../agent/AgentConfig'
+import { CacheRepository, PersistedLruCache } from '../../../../cache'
+import { IndySdkError } from '../../../../error/IndySdkError'
+import { injectable } from '../../../../plugins'
+import { isSelfCertifiedDid } from '../../../../utils/did'
+import { isIndyError } from '../../../../utils/indyError'
+import { allSettled, onlyFulfilled, onlyRejected } from '../../../../utils/promises'
+import { LedgerNotFoundError, LedgerError, LedgerNotConfiguredError } from '../../error'
+
+import { IndyPool } from './IndyPool'
 
 export const DID_POOL_CACHE_ID = 'DID_POOL_CACHE'
 export const DID_POOL_CACHE_LIMIT = 500

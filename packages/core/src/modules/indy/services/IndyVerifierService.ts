@@ -1,11 +1,11 @@
 import type * as Indy from 'indy-sdk'
 
 import { AgentConfig } from '../../../agent/AgentConfig'
+import { InjectionSymbols } from '../../../constants'
 import { IndySdkError } from '../../../error'
 import { inject, injectable } from '../../../plugins'
 import { isIndyError } from '../../../utils/indyError'
 import { CheqdLedgerService } from '../../ledger'
-import { GenericIndyLedgerService } from '../../ledger/models/IndyLedgerService'
 
 @injectable()
 export class IndyVerifierService {
@@ -13,7 +13,7 @@ export class IndyVerifierService {
 
   public constructor(
     agentConfig: AgentConfig,
-    @inject(GenericIndyLedgerService) private ledgerService: CheqdLedgerService
+    @inject(InjectionSymbols.GenericIndyLedgerService) private ledgerService: CheqdLedgerService
   ) {
     this.indy = agentConfig.agentDependencies.indy
   }
