@@ -139,10 +139,10 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
       amount: [
         {
           denom: faucet.minimalDenom,
-          amount: '12500000',
+          amount: '37500000',
         },
       ],
-      gas: '500000',
+      gas: '1500000',
       payer: (await sdkOptions.wallet.getAccounts())[0].address,
     }
     return this.sdk
@@ -181,10 +181,15 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
 
   public async indyCredentialDefinitionIdFromCheqdCredentialDefinitionId(cheqdCredDefId: string) {
     const credDefResource = await this.getCredentialDefinitionResource(cheqdCredDefId)
+    console.log('got cred def resource', credDefResource)
     const schemaResource = await this.getSchemaResource(credDefResource.AnonCredsCredDef.schemaId)
+    console.log('got schema resource', schemaResource)
     const indyDid = await this.getPublicDid(cheqdCredDefId.split('/')[0])
+    console.log('issuer indy did', schemaResource)
 
-    const indySchemaId = `${indyDid.did}:2:${schemaResource.AnonCredsSchema.name}:${schemaResource.AnonCredsSchema.version}`
+    const indySchemaDid = await this.getPublicDid(credDefResource.AnonCredsCredDef.schemaId.split('/')[0])
+    const indySchemaId = `${indySchemaDid.did}:2:${schemaResource.AnonCredsSchema.name}:${schemaResource.AnonCredsSchema.version}`
+
     console.log('Creating txnId from ' + indySchemaId)
     const txnId = IndyCredentialUtils.encode(indySchemaId).substring(0, 6)
 
@@ -436,11 +441,11 @@ export class CheqdLedgerService implements GenericIndyLedgerService {
         amount: [
           {
             denom: 'ncheq',
-            amount: '12500000',
+            amount: '37500000',
           },
         ],
         // TODO: calculate gas or something?
-        gas: '500000',
+        gas: '1500000',
         payer: address,
       }
     )

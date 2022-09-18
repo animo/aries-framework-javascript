@@ -31,7 +31,7 @@ const aliceConfig = getBaseConfig('cheqd alice', {
 const faberConfig = getBaseConfig('cheqd faber', {
   logger,
   endpoints: ['rxjs:faber'],
-  publicDidSeed: '00000000000000000000000000000017',
+  publicDidSeed: '00000000000000000000000000000022',
 })
 
 describe('Cheqd', () => {
@@ -126,7 +126,7 @@ describe('Cheqd', () => {
 
     let faberCredentialRecord = await faberAgent.credentials.offerCredential({
       connectionId: faberConnection.id,
-      protocolVersion: 'v2',
+      protocolVersion: 'v1',
       credentialFormats: {
         indy: {
           attributes: [
