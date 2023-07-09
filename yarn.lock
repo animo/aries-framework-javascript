@@ -1054,7 +1054,7 @@
   resolved "https://registry.yarnpkg.com/@hyperledger/anoncreds-shared/-/anoncreds-shared-0.1.0.tgz#947c602c385bfa79b63849c9e48b51cc9d41d820"
   integrity sha512-DisZFY4YbrugRCCv7AtYFUTsrGigHF1dVaiA36WrhRUgetwDzKgMiYGkxFQmCe0IJ0mDw4M7sbTJBXxfxij/+A==
 
-"@hyperledger/aries-askar-nodejs@^0.1.0":
+"@hyperledger/aries-askar-nodejs@0.1.0", "@hyperledger/aries-askar-nodejs@^0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@hyperledger/aries-askar-nodejs/-/aries-askar-nodejs-0.1.0.tgz#2bb8f19d3f44b67e8aa92e4d45da9ab47ddb0539"
   integrity sha512-5jc8lNZg9Qxd4BoUWCknJ2YH7iqgO5/kl6KMfry5z9MTXQ5u30ysqPQCtWwryAKt+q55jnlw+pgISsis+zDfgA==
@@ -7637,10 +7637,10 @@ jwt-decode@^3.1.2:
   resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-3.1.2.tgz#3fb319f3675a2df0c2895c8f5e9fa4b67b04ed59"
   integrity sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==
 
-jwt-sd@0.0.1-alpha.5:
-  version "0.0.1-alpha.5"
-  resolved "https://registry.yarnpkg.com/jwt-sd/-/jwt-sd-0.0.1-alpha.5.tgz#9d3bf63772e5eade353d0fe0494449b747e4873d"
-  integrity sha512-YzPcHvApmSiF180p51JKrKcPYBYN6ItM2lKGf1Q9W08B+Q6DpmfVNxC93qhEdCwP3piAftrxeeJilkm3V3P7nQ==
+jwt-sd@0.0.1-alpha.6:
+  version "0.0.1-alpha.6"
+  resolved "https://registry.yarnpkg.com/jwt-sd/-/jwt-sd-0.0.1-alpha.6.tgz#cbc2a5184be54a7441733883ae3752d41c59a258"
+  integrity sha512-yfaRKnZNLtTGQnIkbj+6XJfYOLwHXy5F4LBgRB+1/Sf5GJlkM+XNZoTDmSBoo1cttq2DMo74CLcU+rNDejXf3w==
 
 kind-of@^3.0.2, kind-of@^3.0.3, kind-of@^3.2.0:
   version "3.2.2"

@@ -49,20 +49,13 @@ const run = async () => {
   console.log('Signing JWT with key:', signerKey)
   console.log()
 
-  const sdJwt = await agent.modules.sdJwtModule.createSdJwt(jwt, claims, signerKey)
+  const sdJwt = await agent.modules.sdJwtModule.createSdJwt({
+    signerKey,
+    selectivelyDisclosableClaims: claims,
+    nonSelectivelyDisclosableClaims: jwt,
+  })
 
   console.log('Writing SD-JWT:', sdJwt)
-  console.log()
-
-  fs.writeFileSync(
-    path.join(
-      '/Users/karimstekelenburg/Developer/aries-framework-javascript/packages/sd-jwt/tests/temp-files',
-      'sd-jwt.jwt'
-    ),
-    sdJwt
-  )
-
-  console.log('=== ✅ Alice the Issuer ===')
 }
 
 void run()

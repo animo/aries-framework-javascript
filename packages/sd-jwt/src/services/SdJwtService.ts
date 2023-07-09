@@ -30,13 +30,7 @@ export class SdJwtService {
 
   public async createSdJwt(
     agentContext: AgentContext,
-    {
-      headerClaims,
-      signerKey,
-      selectivelyDisclosableClaims,
-      nonSelectivelyDisclosableClaims,
-      defaultDecoyCount,
-    }: CreateSdJwtOptions
+    { headerClaims, signerKey, selectivelyDisclosableClaims, nonSelectivelyDisclosableClaims }: CreateSdJwtOptions
   ): Promise<string> {
     const jwk = getJwkFromKey(signerKey)
     const header = {
@@ -51,7 +45,7 @@ export class SdJwtService {
 
     const disclosureFrame = this.makeDisclosureFrame(selectivelyDisclosableClaims ?? {})
 
-    new SdJwt()
+    const sdJwt = await new SdJwt()
       .withHeader(header)
       .withPayload(payload)
       .withDisclosureFrame(disclosureFrame)
@@ -60,7 +54,7 @@ export class SdJwtService {
       .withSaltGenerator(this.saltGenerator())
       .toCompact()
 
-    return ''
+    return sdJwt
   }
 
   private makeDisclosureFrame(selectivelyDisclosableItems: Record<string, unknown>) {
