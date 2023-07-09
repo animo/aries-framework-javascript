@@ -7637,6 +7637,11 @@ jwt-decode@^3.1.2:
   resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-3.1.2.tgz#3fb319f3675a2df0c2895c8f5e9fa4b67b04ed59"
   integrity sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==
 
+jwt-sd@0.0.1-alpha.5:
+  version "0.0.1-alpha.5"
+  resolved "https://registry.yarnpkg.com/jwt-sd/-/jwt-sd-0.0.1-alpha.5.tgz#9d3bf63772e5eade353d0fe0494449b747e4873d"
+  integrity sha512-YzPcHvApmSiF180p51JKrKcPYBYN6ItM2lKGf1Q9W08B+Q6DpmfVNxC93qhEdCwP3piAftrxeeJilkm3V3P7nQ==
+
 kind-of@^3.0.2, kind-of@^3.0.3, kind-of@^3.2.0:
   version "3.2.2"
   resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-3.2.2.tgz#31ea21a734bab9bbb0f32466d893aea51e4a3c64"
