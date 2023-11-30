@@ -3,6 +3,7 @@
   "main": "build/index",
   "types": "build/index",
   "version": "0.4.2",
+  "type": "module",
   "files": [
     "build"
   ],
@@ -25,7 +26,12 @@
   },
   "dependencies": {
     "@aries-framework/askar": "^0.4.2",
-    "@aries-framework/core": "0.4.2"
+    "@aries-framework/core": "0.4.2",
+    "@web5/agent": "^0.2.3",
+    "@web5/api": "^0.8.2",
+    "@web5/dids": "^0.2.2",
+    "@web5/dwn-server": "0.1.7",
+    "@web5/user-agent": "^0.2.3"
   },
   "devDependencies": {
     "@aries-framework/node": "^0.4.2",
