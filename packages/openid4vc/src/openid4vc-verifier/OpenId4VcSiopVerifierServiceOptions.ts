@@ -10,6 +10,7 @@ import type {
   DifPresentationExchangeSubmission,
   DifPresentationExchangeDefinitionV2,
   VerifiablePresentation,
+  Key,
 } from '@credo-ts/core'
 
 export type ResponseMode = 'direct_post' | 'direct_post.jwt'
@@ -46,6 +47,8 @@ export interface OpenId4VcSiopCreateAuthorizationRequestOptions {
    * With response_mode `direct_post.jwt` the response will be `signed` `encrypted` or `signed and encrypted` and then posted to the `response_uri` provided in the request.
    */
   responseMode?: ResponseMode
+
+  additionalPayloadClaims?: Record<string, unknown>
 }
 
 export interface OpenId4VcSiopVerifyAuthorizationResponseOptions {
@@ -53,6 +56,8 @@ export interface OpenId4VcSiopVerifyAuthorizationResponseOptions {
    * The authorization response received from the OpenID Provider (OP).
    */
   authorizationResponse: OpenId4VcSiopAuthorizationResponsePayload
+
+  verifyHs256Callback?: (key: Key, data: Uint8Array, signatureInBase64url: string) => Promise<boolean>
 }
 
 export interface OpenId4VcSiopCreateAuthorizationRequestReturn {

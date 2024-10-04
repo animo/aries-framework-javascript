@@ -1,6 +1,5 @@
 import type { OpenId4VcVerificationRequest } from './requestContext'
 import type { OpenId4VcVerificationSessionRecord } from '../repository'
-import type { AgentContext } from '@credo-ts/core/src/agent/context/AgentContext'
 import type { AuthorizationResponsePayload, DecryptCompact } from '@sphereon/did-auth-siop'
 import type { Response, Router } from 'express'
 
@@ -9,6 +8,7 @@ import { AuthorizationRequest, RP } from '@sphereon/did-auth-siop'
 
 import { getRequestContext, sendErrorResponse } from '../../shared/router'
 import { OpenId4VcSiopVerifierService } from '../OpenId4VcSiopVerifierService'
+import { AgentContext, Jwt } from '@credo-ts/core'
 
 export interface OpenId4VcSiopAuthorizationEndpointConfig {
   /**
@@ -18,6 +18,12 @@ export interface OpenId4VcSiopAuthorizationEndpointConfig {
    * @default /authorize
    */
   endpointPath: string
+
+  // for b' flow
+  getVerifyHs256Callback?: (
+    context: AgentContext,
+    verifierKey: Record<string, unknown>
+  ) => (key: Key, data: Uint8Array, signatureInBase64url: string) => Promise<boolean>
 }
 
 async function getVerificationSession(
@@ -119,9 +125,19 @@ export function configureAuthorizationEndpoint(router: Router, config: OpenId4Vc
         throw new CredoError('Missing verification session, cannot verify authorization response.')
       }
 
+      let verifyHs256Callback = undefined
+      const parsedAuthorizationRequest = Jwt.fromSerializedJwt(verificationSession.authorizationRequestJwt)
+      const rpEphPub = parsedAuthorizationRequest.payload.additionalClaims.rp_eph_pub
+      if (rpEphPub) {
+        if (!config.getVerifyHs256Callback)
+          throw new Error('Expected getVerifyHs256Callback when receiving an rp_eph_pub')
+        verifyHs256Callback = config.getVerifyHs256Callback(agentContext, rpEphPub as Record<string, unknown>)
+      }
+
       await openId4VcVerifierService.verifyAuthorizationResponse(agentContext, {
         authorizationResponse: authorizationResponsePayload,
         verificationSession,
+        verifyHs256Callback,
       })
       response.status(200).send()
     } catch (error) {
