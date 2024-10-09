@@ -110,7 +110,9 @@ export class OpenId4VcHolderApi {
       acceptCredentialOfferOptions,
     })
 
-    return credentialResponse.map((credentialResponse) => credentialResponse.credential)
+    return credentialResponse.map((credentialResponse) =>
+      typeof credentialResponse === 'string' ? credentialResponse : credentialResponse.credential
+    )
   }
 
   /**
@@ -134,7 +136,9 @@ export class OpenId4VcHolderApi {
       acceptCredentialOfferOptions,
     })
 
-    return credentialResponse.map((credentialResponse) => credentialResponse.credential)
+    return credentialResponse.map((credentialResponse) =>
+      typeof credentialResponse === 'string' ? credentialResponse : credentialResponse.credential
+    )
   }
 
   /**
@@ -161,7 +165,21 @@ export class OpenId4VcHolderApi {
    * @param options.tokenResponse Obtained through @see requestAccessToken
    */
   public async requestCredentials(options: OpenId4VciRequestCredentialOptions) {
-    const { resolvedCredentialOffer, cNonce, accessToken, dpop, clientId, ...credentialRequestOptions } = options
+    const {
+      resolvedCredentialOffer,
+      cNonce,
+      accessToken,
+      dpop,
+      clientId,
+      additionalProofOfPossessionPayloadClaims,
+      additionalCredentialRequestPayloadClaims,
+      customFormat,
+      popCallback,
+      getCreateJwtCallback,
+      customBody,
+      skipSdJwtVcValidation,
+      ...credentialRequestOptions
+    } = options
 
     return this.openId4VciHolderService.acceptCredentialOffer(this.agentContext, {
       resolvedCredentialOffer,
@@ -170,6 +188,13 @@ export class OpenId4VcHolderApi {
       cNonce,
       dpop,
       clientId,
+      additionalCredentialRequestPayloadClaims,
+      additionalProofOfPossessionPayloadClaims,
+      customFormat,
+      popCallback,
+      getCreateJwtCallback,
+      customBody,
+      skipSdJwtVcValidation,
     })
   }
 

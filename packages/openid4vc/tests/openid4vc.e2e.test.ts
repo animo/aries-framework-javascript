@@ -355,6 +355,7 @@ describe('OpenId4Vc', () => {
     })
 
     expect(credentialsTenant1).toHaveLength(1)
+    if (typeof credentialsTenant1[0] === 'string') throw new Error('String not allowed for credential')
     const compactSdJwtVcTenant1 = (credentialsTenant1[0].credential as SdJwtVc).compact
     const sdJwtVcTenant1 = holderTenant1.sdJwtVc.fromCompact(compactSdJwtVcTenant1)
     expect(sdJwtVcTenant1.payload.vct).toEqual('UniversityDegreeCredential')
@@ -414,6 +415,7 @@ describe('OpenId4Vc', () => {
     })
 
     expect(credentialsTenant2).toHaveLength(1)
+    if (typeof credentialsTenant2[0] === 'string') throw new Error('String not allowed for credential')
     const compactSdJwtVcTenant2 = (credentialsTenant2[0].credential as SdJwtVc).compact
     const sdJwtVcTenant2 = holderTenant1.sdJwtVc.fromCompact(compactSdJwtVcTenant2)
     expect(sdJwtVcTenant2.payload.vct).toEqual('UniversityDegreeCredential2')
@@ -1737,6 +1739,7 @@ describe('OpenId4Vc', () => {
     })
 
     expect(credentialsTenant1).toHaveLength(1)
+    if (typeof credentialsTenant1[0] === 'string') throw new Error('String not allowed for credential')
     const mdocBase64Url = (credentialsTenant1[0].credential as Mdoc).base64Url
     const mdoc = holderTenant1.mdoc.fromBase64Url(mdocBase64Url)
     expect(mdoc.docType).toEqual('UniversityDegreeCredential')

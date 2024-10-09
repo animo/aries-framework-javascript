@@ -198,6 +198,7 @@ describe('OpenId4VcHolder', () => {
         credentialBindingResolver: () => ({ method: 'jwk', jwk: getJwkFromKey(holderKey) }),
       })
 
+      if (typeof credentialResponse[0] === 'string') throw new Error('String not allowed for credential')
       if (!credentialResponse[0]?.notificationMetadata) throw new Error("Notification metadata wasn't returned")
 
       await holder.modules.openId4VcHolder.sendNotification({

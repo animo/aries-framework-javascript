@@ -12,6 +12,7 @@ import type {
   AgentContext,
   DifPresentationExchangeDefinition,
   JwkJson,
+  Key,
   Query,
   QueryOptions,
   RecordSavedEvent,
@@ -194,6 +195,7 @@ export class OpenId4VcSiopVerifierService {
       state,
       requestByReferenceURI: hostedAuthorizationRequestUri,
       jwtIssuer,
+      additionalPayloadClaims: options.additionalPayloadClaims,
     })
 
     // NOTE: it's not possible to set the uri scheme when using the RP to create an auth request, only lower level
@@ -295,6 +297,8 @@ export class OpenId4VcSiopVerifierService {
           mdocGeneratedNonce: options.jarmHeader?.apu
             ? TypedArrayEncoder.toUtf8String(TypedArrayEncoder.fromBase64(options.jarmHeader.apu))
             : undefined,
+          verifyHs256Callback: options.verifyHs256Callback,
+          
         }),
       },
     })
@@ -614,6 +618,9 @@ export class OpenId4VcSiopVerifierService {
       correlationId: string
       responseUri?: string
       mdocGeneratedNonce?: string
+
+      // b' flow
+      verifyHs256Callback?: (key: Key, data: Uint8Array, signatureInBase64url: string) => Promise<boolean>
     }
   ): PresentationVerificationCallback {
     return async (encodedPresentation, presentationSubmission) => {
@@ -638,6 +645,7 @@ export class OpenId4VcSiopVerifierService {
               audience: options.audience,
               nonce: options.nonce,
             },
+            verifyHs256Callback: options.verifyHs256Callback,
           })
 
           isValid = verificationResult.verification.isValid
