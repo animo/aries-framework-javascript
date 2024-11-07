@@ -10,6 +10,7 @@ import {
   JwsService,
   JwtPayload,
   SignatureSuiteRegistry,
+  TypedArrayEncoder,
   X509Service,
   getDomainFromUrl,
   getJwkClassFromKeyType,
@@ -17,6 +18,7 @@ import {
   getJwkFromKey,
   getKeyFromVerificationMethod,
 } from '@credo-ts/core'
+import { fetchEntityConfiguration, resolveTrustChains } from '@openid-federation/core'
 
 /**
  * Returns the JWA Signature Algorithms that are supported by the wallet.
@@ -49,21 +51,62 @@ async function getKeyFromDid(agentContext: AgentContext, didUrl: string) {
   return getKeyFromVerificationMethod(verificationMethod)
 }
 
-export function getVerifyJwtCallback(agentContext: AgentContext): VerifyJwtCallback {
+type VerifyJwtCallbackOptions = {
+  federation?: {
+    trustedEntityIds?: string[]
+  }
+}
+
+export function getVerifyJwtCallback(
+  agentContext: AgentContext,
+  options: VerifyJwtCallbackOptions = {}
+): VerifyJwtCallback {
   return async (jwtVerifier, jwt) => {
     const jwsService = agentContext.dependencyManager.resolve(JwsService)
+
     if (jwtVerifier.method === 'did') {
       const key = await getKeyFromDid(agentContext, jwtVerifier.didUrl)
       const jwk = getJwkFromKey(key)
 
       const res = await jwsService.verifyJws(agentContext, { jws: jwt.raw, jwkResolver: () => jwk })
       return res.isValid
-    } else if (jwtVerifier.method === 'x5c' || jwtVerifier.method === 'jwk') {
+    }
+
+    if (jwtVerifier.method === 'x5c' || jwtVerifier.method === 'jwk') {
       const res = await jwsService.verifyJws(agentContext, { jws: jwt.raw })
       return res.isValid
-    } else {
-      throw new Error(`Unsupported jwt verifier method: '${jwtVerifier.method}'`)
     }
+
+    if (jwtVerifier.method === 'openid-federation') {
+      const { entityId } = jwtVerifier
+      const trustedEntityIds = options.federation?.trustedEntityIds
+      if (!trustedEntityIds)
+        throw new CredoError('No trusted entity ids provided but is required for the openid-federation method.')
+
+      const validTrustChains = await resolveTrustChains({
+        entityId,
+        trustAnchorEntityIds: trustedEntityIds,
+        verifyJwtCallback: async ({ data, signature, jwk }) => {
+          const jws = `${TypedArrayEncoder.toUtf8String(data)}.${TypedArrayEncoder.toBase64URL(signature)}`
+
+          const res = await jwsService.verifyJws(agentContext, {
+            jws,
+            jwkResolver: () => getJwkFromJson(jwk),
+          })
+
+          return res.isValid
+        },
+      })
+
+      // TODO: There is no check yet for the policies
+
+      // TODO: When this function results in a `false` it gives a really misleading error message: 'Error verifying the DID Auth Token signature.'
+
+      // TODO: I think this is correct but not sure?
+      return validTrustChains.length > 0
+    }
+
+    throw new Error(`Unsupported jwt verifier method: '${jwtVerifier.method}'`)
   }
 }
 
@@ -82,7 +125,9 @@ export function getCreateJwtCallback(
       })
 
       return jws
-    } else if (jwtIssuer.method === 'jwk') {
+    }
+
+    if (jwtIssuer.method === 'jwk') {
       if (!jwtIssuer.jwk.kty) {
         throw new CredoError('Missing required key type (kty) in the jwk.')
       }
@@ -95,7 +140,9 @@ export function getCreateJwtCallback(
       })
 
       return jws
-    } else if (jwtIssuer.method === 'x5c') {
+    }
+
+    if (jwtIssuer.method === 'x5c') {
       const leafCertificate = X509Service.getLeafCertificate(agentContext, { certificateChain: jwtIssuer.x5c })
 
       const jws = await jwsService.createJwsCompact(agentContext, {
@@ -107,6 +154,37 @@ export function getCreateJwtCallback(
       return jws
     }
 
+    if (jwtIssuer.method === 'custom') {
+      const { options } = jwtIssuer
+      if (!options) throw new CredoError(`Custom jwtIssuer must have options defined.`)
+      if (!options.clientId) throw new CredoError(`Custom jwtIssuer must have clientId defined.`)
+      if (typeof options.clientId !== 'string') throw new CredoError(`Custom jwtIssuer's clientId must be a string.`)
+
+      const { clientId } = options
+
+      const entityConfiguration = await fetchEntityConfiguration({
+        entityId: clientId as string,
+        verifyJwtCallback: async ({ data, signature, jwk }) => {
+          const jws = `${TypedArrayEncoder.toUtf8String(data)}.${TypedArrayEncoder.toBase64URL(signature)}`
+          const res = await jwsService.verifyJws(agentContext, { jws, jwkResolver: () => getJwkFromJson(jwk) })
+          return res.isValid
+        },
+      })
+
+      // TODO: Not 100% sure what key to pick here I think the one that matches the kid in the jwt header of the entity configuration or we should pass a alg and pick a jwk based on that?
+      const jwk = getJwkFromJson(entityConfiguration.jwks.keys[0])
+
+      // TODO: This gives a weird error when the private key is not available in the wallet
+      const jws = await jwsService.createJwsCompact(agentContext, {
+        protectedHeaderOptions: { ...jwt.header, jwk, alg: jwk.supportedSignatureAlgorithms[0] },
+        payload: JwtPayload.fromJson(jwt.payload),
+        key: jwk.key,
+      })
+
+      return jws
+    }
+
+    // @ts-expect-error - All methods are supported currently so there is no unsupported method anymore
     throw new Error(`Unsupported jwt issuer method '${jwtIssuer.method}'`)
   }
 }
@@ -125,7 +203,9 @@ export async function openIdTokenIssuerToJwtIssuer(
       didUrl: openId4VcTokenIssuer.didUrl,
       alg,
     }
-  } else if (openId4VcTokenIssuer.method === 'x5c') {
+  }
+
+  if (openId4VcTokenIssuer.method === 'x5c') {
     const leafCertificate = X509Service.getLeafCertificate(agentContext, {
       certificateChain: openId4VcTokenIssuer.x5c,
     })
@@ -153,7 +233,9 @@ export async function openIdTokenIssuerToJwtIssuer(
       ...openId4VcTokenIssuer,
       alg,
     }
-  } else if (openId4VcTokenIssuer.method === 'jwk') {
+  }
+
+  if (openId4VcTokenIssuer.method === 'jwk') {
     const alg = openId4VcTokenIssuer.jwk.supportedSignatureAlgorithms[0]
     if (!alg) {
       throw new CredoError(`No supported signature algorithms for key type: '${openId4VcTokenIssuer.jwk.keyType}'`)
@@ -162,6 +244,16 @@ export async function openIdTokenIssuerToJwtIssuer(
       ...openId4VcTokenIssuer,
       jwk: openId4VcTokenIssuer.jwk.toJson(),
       alg,
+    }
+  }
+
+  if (openId4VcTokenIssuer.method === 'openid-federation') {
+    // TODO: Not sure what we want here if we need to add a new type to the sphereon library or that we can do it with the custom issuer
+    return {
+      method: 'custom',
+      options: {
+        clientId: openId4VcTokenIssuer.clientId,
+      },
     }
   }
 
