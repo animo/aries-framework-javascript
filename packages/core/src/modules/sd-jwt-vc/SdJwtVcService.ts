@@ -499,7 +499,6 @@ export class SdJwtVcService {
             },
           })) ?? x509Config.trustedCertificates
       }
-
       if (!trustedCertificates) {
         throw new SdJwtVcError(
           'No trusted certificates configured for X509 certificate chain validation. Issuer cannot be verified.'

@@ -137,6 +137,7 @@ export function getVerifyJwtCallback(
           const res = await jwsService.verifyJws(agentContext, {
             jws: jwt,
             jwkResolver: () => getJwkFromJson(jwk),
+            trustedCertificates: [],
           })
 
           return res.isValid
@@ -158,6 +159,7 @@ export function getVerifyJwtCallback(
       const res = await jwsService.verifyJws(agentContext, {
         jws: jwt.raw,
         jwkResolver: () => getJwkFromJson(rpSigningKeys[0]),
+        trustedCertificates: [],
       })
       if (!res.isValid) {
         logger.error(`${entityId} does not match the expected signing key.`)
