@@ -73,8 +73,9 @@
   "resolutions": {
     "@types/node": "18.18.8",
     "undici": "^6.20.1",
-    "@sphereon/jarm": "0.16.1-fix.173",
-    "@sphereon/oid4vc-common": "0.16.1-fix.173"
+    "@sphereon/jarm": "https://gitpkg.vercel.app/animo/OID4VC/packages/jarm?funke",
+    "@sphereon/oid4vc-common": "https://gitpkg.vercel.app/animo/OID4VC/packages/common?funke",
+    "@sphereon/did-auth-siop": "https://gitpkg.vercel.app/animo/OID4VC/packages/siop-oid4vp?funke"
   },
   "engines": {
     "node": ">=18"
