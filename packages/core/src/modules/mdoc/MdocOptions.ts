@@ -18,7 +18,7 @@ export type MdocOpenId4VpSessionTranscriptOptions = {
   mdocGeneratedNonce: string
 }
 
-export type MdocDeviceResponseOpenId4VpOptions = {
+export type MdocPexDeviceResponseOpenId4VpOptions = {
   mdocs: [Mdoc, ...Mdoc[]]
   presentationDefinition: DifPresentationExchangeDefinition
   deviceNameSpaces?: MdocNameSpaces
@@ -30,6 +30,20 @@ export type MdocDeviceResponseOptions = {
   deviceRequest: DeviceRequest
   deviceNameSpaces?: MdocNameSpaces
   sessionTranscriptBytes: Uint8Array
+}
+
+export type MdocDocRequest = {
+  itemsRequestData: {
+    docType: string
+    nameSpaces: Record<string, Record<string, boolean>>
+  }
+}
+
+export type MdocDcqlDeviceResponseOpenId4VpOptions = {
+  mdoc: Mdoc
+  docRequest: MdocDocRequest
+  deviceNameSpaces?: MdocNameSpaces
+  sessionTranscriptOptions: MdocOpenId4VpSessionTranscriptOptions
 }
 
 export type MdocDeviceResponseVerifyOptions = {

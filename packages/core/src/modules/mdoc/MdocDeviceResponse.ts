@@ -1,7 +1,10 @@
 import type {
-  MdocDeviceResponseOpenId4VpOptions,
+  MdocDcqlDeviceResponseOpenId4VpOptions,
+  MdocPexDeviceResponseOpenId4VpOptions,
   MdocDeviceResponseOptions,
   MdocDeviceResponseVerifyOptions,
+  MdocDocRequest,
+  MdocOpenId4VpSessionTranscriptOptions,
 } from './MdocOptions'
 import type { AgentContext } from '../../agent'
 import type { DifPresentationExchangeDefinition } from '../dif-presentation-exchange'
@@ -9,20 +12,21 @@ import type { PresentationDefinition } from '@animo-id/mdoc'
 import type { InputDescriptorV2 } from '@sphereon/pex-models'
 
 import {
-  limitDisclosureToInputDescriptor as mdocLimitDisclosureToInputDescriptor,
+  cborEncode,
   COSEKey,
+  DeviceRequest,
   DeviceResponse,
   MDoc,
+  limitDisclosureToInputDescriptor as mdocLimitDisclosureToInputDescriptor,
+  MDocStatus,
+  parseDeviceResponse,
   parseIssuerSigned,
   Verifier,
-  MDocStatus,
-  cborEncode,
-  parseDeviceResponse,
-  DeviceRequest,
 } from '@animo-id/mdoc'
 
 import { CredoError } from '../../error'
 import { uuid } from '../../utils/uuid'
+import { ClaimFormat } from '../vc'
 import { X509Certificate } from '../x509/X509Certificate'
 import { X509ModuleConfig } from '../x509/X509ModuleConfig'
 
@@ -30,9 +34,24 @@ import { TypedArrayEncoder } from './../../utils'
 import { Mdoc } from './Mdoc'
 import { getMdocContext } from './MdocContext'
 import { MdocError } from './MdocError'
+import { nameSpacesRecordToMap } from './mdocUtil'
 
 export class MdocDeviceResponse {
   private constructor(public base64Url: string, public documents: Mdoc[]) {}
+
+  /**
+   * claim format is convenience method added to all credential instances
+   */
+  public get claimFormat() {
+    return ClaimFormat.MsoMdoc as const
+  }
+
+  /**
+   * Encoded is convenience method added to all credential instances
+   */
+  public get encoded() {
+    return this.base64Url
+  }
 
   public static fromBase64Url(base64Url: string) {
     const parsed = parseDeviceResponse(TypedArrayEncoder.fromBase64(base64Url))
@@ -156,19 +175,21 @@ export class MdocDeviceResponse {
     return disclosedPayloadAsRecord
   }
 
-  public static async createOpenId4VpDeviceResponse(
+  private static async createOpenId4VpDeviceResponse(
     agentContext: AgentContext,
-    options: MdocDeviceResponseOpenId4VpOptions
+    options: {
+      mdocs: Mdoc[]
+      deviceNameSpaces?: Record<string, Record<string, unknown>>
+      sessionTranscriptOptions: MdocOpenId4VpSessionTranscriptOptions
+      presentationDefinition?: PresentationDefinition
+      docRequests?: MdocDocRequest[]
+    }
   ) {
     const { sessionTranscriptOptions } = options
-    const presentationDefinition = this.partitionPresentationDefinition(
-      options.presentationDefinition
-    ).mdocPresentationDefinition
 
     const issuerSignedDocuments = options.mdocs.map((mdoc) =>
       parseIssuerSigned(TypedArrayEncoder.fromBase64(mdoc.base64Url), mdoc.docType)
     )
-    const docTypes = issuerSignedDocuments.map((i) => i.docType)
 
     const combinedDeviceResponseMdoc = new MDoc()
 
@@ -178,18 +199,33 @@ export class MdocDeviceResponse {
 
       const publicDeviceJwk = COSEKey.import(deviceKey).toJWK()
 
-      // We do PEX filtering on a different layer, so we only include the needed input descriptor here
-      const presentationDefinitionForDocument = {
-        ...presentationDefinition,
-        input_descriptors: presentationDefinition.input_descriptors.filter(
-          (inputDescriptor) => inputDescriptor.id === issuerSignedDocument.docType
-        ),
-      }
-
       const deviceResponseBuilder = DeviceResponse.from(new MDoc([issuerSignedDocument]))
-        .usingPresentationDefinition(presentationDefinitionForDocument)
         .usingSessionTranscriptForOID4VP(sessionTranscriptOptions)
         .authenticateWithSignature(publicDeviceJwk, 'ES256')
+
+      if (options.presentationDefinition) {
+        // We do PEX filtering on a different layer, so we only include the needed input descriptor here
+        const presentationDefinitionForDocument = {
+          ...options.presentationDefinition,
+          input_descriptors: options.presentationDefinition?.input_descriptors.filter(
+            (inputDescriptor) => inputDescriptor.id === issuerSignedDocument.docType
+          ),
+        }
+
+        deviceResponseBuilder.usingPresentationDefinition(presentationDefinitionForDocument)
+      } else if (options.docRequests) {
+        const deviceRequest = DeviceRequest.from(
+          '1.0',
+          options.docRequests.map((r) => ({
+            ...r,
+            itemsRequestData: {
+              ...r.itemsRequestData,
+              nameSpaces: nameSpacesRecordToMap(r.itemsRequestData.nameSpaces),
+            },
+          }))
+        )
+        deviceResponseBuilder.usingDeviceRequest(deviceRequest)
+      }
 
       for (const [nameSpace, nameSpaceValue] of Object.entries(options.deviceNameSpaces ?? {})) {
         deviceResponseBuilder.addDeviceNameSpace(nameSpace, nameSpaceValue)
@@ -201,6 +237,36 @@ export class MdocDeviceResponse {
 
     return {
       deviceResponseBase64Url: TypedArrayEncoder.toBase64URL(combinedDeviceResponseMdoc.encode()),
+    }
+  }
+
+  public static async createOpenId4VpDcqlDeviceResponse(
+    agentContext: AgentContext,
+    options: MdocDcqlDeviceResponseOpenId4VpOptions
+  ) {
+    return this.createOpenId4VpDeviceResponse(agentContext, {
+      ...options,
+      docRequests: [options.docRequest],
+      mdocs: [options.mdoc],
+    })
+  }
+
+  public static async createOpenId4VpPexDeviceResponse(
+    agentContext: AgentContext,
+    options: MdocPexDeviceResponseOpenId4VpOptions
+  ) {
+    const presentationDefinition = this.partitionPresentationDefinition(
+      options.presentationDefinition
+    ).mdocPresentationDefinition
+    const docTypes = options.mdocs.map((mdoc) => mdoc.docType)
+
+    const { deviceResponseBase64Url } = await this.createOpenId4VpDeviceResponse(agentContext, {
+      ...options,
+      presentationDefinition,
+    })
+
+    return {
+      deviceResponseBase64Url,
       presentationSubmission: MdocDeviceResponse.createPresentationSubmission({
         id: 'MdocPresentationSubmission ' + uuid(),
         presentationDefinition: {

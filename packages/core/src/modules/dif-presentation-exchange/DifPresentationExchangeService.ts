@@ -201,7 +201,7 @@ export class DifPresentationExchangeService {
         }
 
         const { deviceResponseBase64Url, presentationSubmission } =
-          await MdocDeviceResponse.createOpenId4VpDeviceResponse(agentContext, {
+          await MdocDeviceResponse.createOpenId4VpPexDeviceResponse(agentContext, {
             mdocs: [Mdoc.fromBase64Url(mdocRecord.base64Url)],
             presentationDefinition: presentationDefinition,
             sessionTranscriptOptions: {

@@ -188,7 +188,7 @@ describe('mdoc device-response openid4vp test', () => {
 
     //  This is the Device side
     {
-      const result = await MdocDeviceResponse.createOpenId4VpDeviceResponse(agent.context, {
+      const result = await MdocDeviceResponse.createOpenId4VpPexDeviceResponse(agent.context, {
         mdocs: [mdoc],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         presentationDefinition: PRESENTATION_DEFINITION_1 as any,

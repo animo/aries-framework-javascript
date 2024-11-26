@@ -1,6 +1,6 @@
 import type {
   MdocSignOptions,
-  MdocDeviceResponseOpenId4VpOptions,
+  MdocPexDeviceResponseOpenId4VpOptions,
   MdocDeviceResponseVerifyOptions,
   MdocVerifyOptions,
   MdocDeviceResponseOptions,
@@ -42,8 +42,11 @@ export class MdocService {
     return MdocDeviceResponse.createDeviceResponse(agentContext, options)
   }
 
-  public async createOpenId4VpDeviceResponse(agentContext: AgentContext, options: MdocDeviceResponseOpenId4VpOptions) {
-    return MdocDeviceResponse.createOpenId4VpDeviceResponse(agentContext, options)
+  public async createOpenId4VpDeviceResponse(
+    agentContext: AgentContext,
+    options: MdocPexDeviceResponseOpenId4VpOptions
+  ) {
+    return MdocDeviceResponse.createOpenId4VpPexDeviceResponse(agentContext, options)
   }
 
   public async verifyDeviceResponse(agentContext: AgentContext, options: MdocDeviceResponseVerifyOptions) {

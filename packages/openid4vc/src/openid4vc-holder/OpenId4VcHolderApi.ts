@@ -13,7 +13,14 @@ import type {
   OpenId4VcSiopResolveTrustChainsOptions,
 } from './OpenId4vcSiopHolderServiceOptions'
 
-import { injectable, AgentContext, DifPresentationExchangeService, DifPexCredentialsForRequest } from '@credo-ts/core'
+import {
+  injectable,
+  AgentContext,
+  DifPresentationExchangeService,
+  DifPexCredentialsForRequest,
+  DcqlQueryResult,
+  DcqlService,
+} from '@credo-ts/core'
 
 import { OpenId4VciMetadata } from '../shared'
 
@@ -29,7 +36,8 @@ export class OpenId4VcHolderApi {
     private agentContext: AgentContext,
     private openId4VciHolderService: OpenId4VciHolderService,
     private openId4VcSiopHolderService: OpenId4VcSiopHolderService,
-    private difPresentationExchangeService: DifPresentationExchangeService
+    private difPresentationExchangeService: DifPresentationExchangeService,
+    private dcqlService: DcqlService
   ) {}
 
   /**
@@ -66,11 +74,19 @@ export class OpenId4VcHolderApi {
   }
 
   /**
-   * Automatically select credentials from available credentials for a request. Can be called after calling
+   * Automatically select credentials from available credentials for a presentation exchange request. Can be called after calling
    * @see resolveSiopAuthorizationRequest.
    */
-  public selectCredentialsForRequest(credentialsForRequest: DifPexCredentialsForRequest) {
+  public selectCredentialsForPresentationExchangeRequest(credentialsForRequest: DifPexCredentialsForRequest) {
     return this.difPresentationExchangeService.selectCredentialsForRequest(credentialsForRequest)
+  }
+
+  /**
+   * Automatically select credentials from available credentials for a dcql request. Can be called after calling
+   * @see resolveSiopAuthorizationRequest.
+   */
+  public selectCredentialsForDcqlRequest(dcqlQueryResult: DcqlQueryResult) {
+    return this.dcqlService.selectCredentialsForRequest(dcqlQueryResult)
   }
 
   public async resolveIssuerMetadata(credentialIssuer: string): Promise<OpenId4VciMetadata> {

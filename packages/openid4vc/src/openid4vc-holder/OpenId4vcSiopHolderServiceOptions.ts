@@ -8,6 +8,8 @@ import type {
   DifPexInputDescriptorToCredentials,
   DifPresentationExchangeDefinition,
   EncodedX509Certificate,
+  DcqlQueryResult,
+  DcqlCredentialsForRequest,
 } from '@credo-ts/core'
 
 export interface OpenId4VcSiopResolvedAuthorizationRequest {
@@ -18,6 +20,10 @@ export interface OpenId4VcSiopResolvedAuthorizationRequest {
   presentationExchange?: {
     definition: DifPresentationExchangeDefinition
     credentialsForRequest: DifPexCredentialsForRequest
+  }
+
+  dcql?: {
+    queryResult: DcqlQueryResult
   }
 
   /**
@@ -33,6 +39,14 @@ export interface OpenId4VcSiopAcceptAuthorizationRequestOptions {
    */
   presentationExchange?: {
     credentials: DifPexInputDescriptorToCredentials
+  }
+
+  /**
+   * Parameters related to Dcql. MUST be present when the resolved
+   * authorization request included a `dcql` parameter.
+   */
+  dcql?: {
+    credentials: DcqlCredentialsForRequest
   }
 
   /**
