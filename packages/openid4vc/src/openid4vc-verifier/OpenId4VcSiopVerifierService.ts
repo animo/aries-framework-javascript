@@ -756,18 +756,18 @@ export class OpenId4VcSiopVerifierService {
                   const certificateChain = mdoc.issuerSignedCertificateChain.map((cert) =>
                     X509Certificate.fromRawCertificate(cert)
                   )
+                  return (
+                    (await x509Config.getTrustedCertificatesForVerification?.(agentContext, {
+                      certificateChain,
+                      verification: {
+                        type: 'credential',
+                        credential: mdoc,
+                        openId4VcVerificationSessionId: options.verificationSessionRecordId,
+                      },
+                      // TODO: could have some duplication but not a big issue
+                    })) ?? x509Config.trustedCertificates
+                  )
 
-                  const trustedCertificates = await x509Config.getTrustedCertificatesForVerification?.(agentContext, {
-                    certificateChain,
-                    verification: {
-                      type: 'credential',
-                      credential: mdoc,
-                      openId4VcVerificationSessionId: options.verificationSessionRecordId,
-                    },
-                  })
-
-                  // TODO: could have some duplication but not a big issue
-                  return trustedCertificates ?? x509Config.trustedCertificates
                 })
               )
             )

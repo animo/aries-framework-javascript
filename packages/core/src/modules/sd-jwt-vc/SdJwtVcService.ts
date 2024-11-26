@@ -532,8 +532,7 @@ export class SdJwtVcService {
 
       let trustedCertificates = _trustedCertificates
       const certificateChain = sdJwtVc.jwt.header.x5c.map((cert) => X509Certificate.fromEncodedCertificate(cert))
-
-      if (!trustedCertificates) {
+      if (certificateChain && !trustedCertificates) {
         trustedCertificates =
           (await x509Config.getTrustedCertificatesForVerification?.(agentContext, {
             certificateChain,
