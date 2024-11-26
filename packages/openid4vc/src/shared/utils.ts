@@ -1,7 +1,14 @@
 import type { OpenId4VcIssuerX5c, OpenId4VcJwtIssuer, OpenId4VcJwtIssuerFederation } from './models'
-import type { AgentContext, DidPurpose, JwaSignatureAlgorithm, JwkJson, Key } from '@credo-ts/core'
-import type { JwtIssuerWithContext as VpJwtIssuerWithContext, VerifyJwtCallback } from '@sphereon/did-auth-siop'
-import type { DPoPJwtIssuerWithContext, CreateJwtCallback, JwtIssuer } from '@sphereon/oid4vc-common'
+import type {
+  AgentContext,
+  DidPurpose,
+  EncodedX509Certificate,
+  JwaSignatureAlgorithm,
+  JwkJson,
+  Key,
+} from '@credo-ts/core'
+import type { VerifyJwtCallback, JwtIssuerWithContext as VpJwtIssuerWithContext } from '@sphereon/did-auth-siop'
+import type { CreateJwtCallback, DPoPJwtIssuerWithContext, JwtIssuer } from '@sphereon/oid4vc-common'
 
 import {
   CredoError,
@@ -9,6 +16,8 @@ import {
   JwsService,
   JwtPayload,
   SignatureSuiteRegistry,
+  X509Certificate,
+  X509ModuleConfig,
   X509Service,
   getDomainFromUrl,
   getJwkClassFromKeyType,
@@ -57,27 +66,56 @@ type VerifyJwtCallbackOptions = {
   federation?: {
     trustedEntityIds?: string[]
   }
+  trustedCertificates?: EncodedX509Certificate[]
 }
 
 export function getVerifyJwtCallback(
   agentContext: AgentContext,
   options: VerifyJwtCallbackOptions = {}
 ): VerifyJwtCallback {
-  const logger = agentContext.config.logger
-
   return async (jwtVerifier, jwt) => {
     const jwsService = agentContext.dependencyManager.resolve(JwsService)
+    const logger = agentContext.config.logger
 
+    let trustedCertificates = options.trustedCertificates
     if (jwtVerifier.method === 'did') {
       const key = await getKeyFromDid(agentContext, jwtVerifier.didUrl)
       const jwk = getJwkFromKey(key)
 
-      const res = await jwsService.verifyJws(agentContext, { jws: jwt.raw, jwkResolver: () => jwk })
+      const res = await jwsService.verifyJws(agentContext, {
+        jws: jwt.raw,
+        jwkResolver: () => jwk,
+        // No certificates trusted
+        trustedCertificates: [],
+      })
       return res.isValid
-    }
+    } else if (jwtVerifier.method === 'x5c' || jwtVerifier.method === 'jwk') {
+      if (jwtVerifier.type === 'request-object') {
+        const x509Config = agentContext.dependencyManager.resolve(X509ModuleConfig)
+        const certificateChain = jwt.header.x5c?.map(X509Certificate.fromEncodedCertificate)
 
-    if (jwtVerifier.method === 'x5c' || jwtVerifier.method === 'jwk') {
-      const res = await jwsService.verifyJws(agentContext, { jws: jwt.raw })
+        if (!trustedCertificates) {
+          trustedCertificates = certificateChain
+            ? await x509Config.getTrustedCertificatesForVerification?.(agentContext, {
+                certificateChain,
+                verification: {
+                  type: 'oauth2SecuredAuthorizationRequest',
+                  authorizationRequest: {
+                    jwt: jwt.raw,
+                    payload: JwtPayload.fromJson(jwt.payload),
+                  },
+                },
+              })
+            : // We also take from the config here to avoid the callback being called again
+              x509Config.trustedCertificates ?? []
+        }
+      }
+
+      const res = await jwsService.verifyJws(agentContext, {
+        jws: jwt.raw,
+        // Only allowed for request object
+        trustedCertificates: jwtVerifier.type === 'request-object' ? trustedCertificates : [],
+      })
       return res.isValid
     }
 
@@ -96,6 +134,7 @@ export function getVerifyJwtCallback(
           const res = await jwsService.verifyJws(agentContext, {
             jws: jwt,
             jwkResolver: () => getJwkFromJson(jwk),
+            trustedCertificates: [],
           })
 
           return res.isValid
@@ -117,6 +156,7 @@ export function getVerifyJwtCallback(
       const res = await jwsService.verifyJws(agentContext, {
         jws: jwt.raw,
         jwkResolver: () => getJwkFromJson(rpSigningKeys[0]),
+        trustedCertificates: [],
       })
       if (!res.isValid) {
         logger.error(`${entityId} does not match the expected signing key.`)

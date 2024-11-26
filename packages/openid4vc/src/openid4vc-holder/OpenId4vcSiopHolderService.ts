@@ -52,6 +52,7 @@ export class OpenId4VcSiopHolderService {
   ): Promise<OpenId4VcSiopResolvedAuthorizationRequest> {
     const openidProvider = await this.getOpenIdProvider(agentContext, {
       federation: options.federation,
+      trustedCertificates: options.trustedCertificates,
     })
 
     // parsing happens automatically in verifyAuthorizationRequest
@@ -298,6 +299,7 @@ export class OpenId4VcSiopHolderService {
       .withVerifyJwtCallback(
         getVerifyJwtCallback(agentContext, {
           federation: options.federation,
+          trustedCertificates: options.trustedCertificates,
         })
       )
       .withHasher(Hasher.hash)

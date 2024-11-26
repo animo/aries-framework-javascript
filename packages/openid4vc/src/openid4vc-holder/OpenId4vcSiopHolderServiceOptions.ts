@@ -7,6 +7,7 @@ import type {
   DifPexCredentialsForRequest,
   DifPexInputDescriptorToCredentials,
   DifPresentationExchangeDefinition,
+  EncodedX509Certificate,
 } from '@credo-ts/core'
 
 export interface OpenId4VcSiopResolvedAuthorizationRequest {
@@ -59,6 +60,8 @@ export interface OpenId4VcSiopResolveAuthorizationRequestOptions {
      */
     trustedEntityIds?: string[]
   }
+
+  trustedCertificates?: EncodedX509Certificate[]
 }
 
 export interface OpenId4VcSiopGetOpenIdProviderOptions {
@@ -68,6 +71,8 @@ export interface OpenId4VcSiopGetOpenIdProviderOptions {
      */
     trustedEntityIds?: string[]
   }
+
+  trustedCertificates?: EncodedX509Certificate[]
 }
 
 export interface OpenId4VcSiopResolveTrustChainsOptions {
