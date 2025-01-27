@@ -328,7 +328,7 @@ export class OpenId4VcSiopVerifierService {
           responseUri,
           mdocGeneratedNonce: options.jarmHeader?.apu
             ? TypedArrayEncoder.toUtf8String(TypedArrayEncoder.fromBase64(options.jarmHeader.apu))
-            : undefined,
+            : '',
           verificationSessionRecordId: options.verificationSession.id,
         }),
       },
@@ -744,7 +744,7 @@ export class OpenId4VcSiopVerifierService {
           isValid = verificationResult.verification.isValid
           reason = verificationResult.isValid ? undefined : verificationResult.error.message
         } else if (typeof encodedPresentation === 'string' && !Jwt.format.test(encodedPresentation)) {
-          if (!options.responseUri || !options.mdocGeneratedNonce) {
+          if (!options.responseUri || (!options.mdocGeneratedNonce && options.mdocGeneratedNonce !== '')) {
             isValid = false
             reason = 'Mdoc device response verification failed. Response uri and the mdocGeneratedNonce are not set'
           } else {

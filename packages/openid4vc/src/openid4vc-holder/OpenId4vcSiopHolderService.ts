@@ -138,7 +138,14 @@ export class OpenId4VcSiopHolderService {
     let dcqlOptions: DcqlQueryResponseOpts | undefined = undefined
 
     const wantsIdToken = await authorizationRequest.authorizationRequest.containsResponseType(ResponseType.ID_TOKEN)
-    const authorizationResponseNonce = await agentContext.wallet.generateNonce()
+
+    const responseMode: string | undefined = await authorizationRequest.authorizationRequest.getMergedProperty(
+      'response_mode'
+    )
+    const authorizationResponseNonce =
+      // In case we do not use JARM, we set the authorization response nonce to an empty string
+      // to allow mDOC without JARM
+      !responseMode || !responseMode.endsWith('.jwt') ? '' : await agentContext.wallet.generateNonce()
 
     if (
       (authorizationRequest.presentationDefinitions && authorizationRequest.presentationDefinitions.length > 0) ||
