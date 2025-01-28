@@ -96,6 +96,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          pnpm build
+          pnpm update-package-names
+
           # this ensures there's always a patch release created
           cat << 'EOF' > .changeset/snapshot-template-changeset.md
           ---
@@ -104,9 +107,6 @@ jobs:
 
           snapshot release
           EOF
-
-          pnpm build
-          pnpm update-package-names
           pnpm changeset version --snapshot ${{ env.TAG }}
           pnpm changeset publish --tag ${{ env.TAG }}
 
