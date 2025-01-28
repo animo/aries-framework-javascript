@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - funke-release
   pull_request:
     branches:
       - main
@@ -45,7 +46,7 @@ jobs:
           version: pnpm changeset-version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_PUBLISH }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Get current package version
         id: get_version
@@ -87,25 +88,26 @@ jobs:
             //registry.npmjs.org/:_authToken=$NPM_TOKEN
           EOF
         env:
-          NPM_TOKEN: ${{ secrets.NPM_PUBLISH }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create unstable release
         env:
           TAG: ${{ github.event_name == 'push' && 'alpha' || format('pr-{0}', github.event.number) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_PUBLISH }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # this ensures there's always a patch release created
           cat << 'EOF' > .changeset/snapshot-template-changeset.md
           ---
-          '@credo-ts/core': patch
+          '@animo-id/credo-ts-core': patch
           ---
 
           snapshot release
           EOF
 
-          pnpm changeset version --snapshot ${{ env.TAG }}
           pnpm build
+          pnpm update-package-names
+          pnpm changeset version --snapshot ${{ env.TAG }}
           pnpm changeset publish --tag ${{ env.TAG }}
 
           CURRENT_PACKAGE_VERSION=$(node -p "require('./packages/core/package.json').version")

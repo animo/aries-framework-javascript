@@ -29,7 +29,8 @@
     "validate": "pnpm lint && pnpm check-types && pnpm check-format",
     "run-mediator": "ts-node ./samples/mediator.ts",
     "release": "pnpm build && pnpm changeset publish --no-git-tag",
-    "changeset-version": "pnpm changeset version && pnpm format"
+    "changeset-version": "pnpm changeset version && pnpm format",
+    "update-package-names": "node update-names.js"
   },
   "devDependencies": {
     "@babel/core": "^7.25.8",
