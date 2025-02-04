@@ -28,6 +28,7 @@ import {
   KeyBackend,
   KeyType,
   utils,
+  expandIfPossible,
 } from '@credo-ts/core'
 import {
   CryptoBox,
@@ -181,7 +182,7 @@ export abstract class AskarBaseWallet implements Wallet {
           // This will be fixed once we use the new 'using' syntax
           key = _key
 
-          const keyPublicBytes = key.publicBytes
+          const keyPublicBytes = expandIfPossible(key.publicBytes, keyType)
 
           // Store key
           await this.withSession((session) =>
@@ -206,7 +207,9 @@ export abstract class AskarBaseWallet implements Wallet {
 
         // Generate a hardware-backed P-256 keypair
         await secureEnvironment.generateKeypair(kid)
-        const publicKeyBytes = await secureEnvironment.getPublicBytesForKeyId(kid)
+        const compressedPublicKeyBytes = await secureEnvironment.getPublicBytesForKeyId(kid)
+
+        const publicKeyBytes = expandIfPossible(compressedPublicKeyBytes, keyType)
         const publicKeyBase58 = TypedArrayEncoder.toBase58(publicKeyBytes)
 
         await this.storeSecureEnvironmentKeyById({
@@ -349,7 +352,9 @@ export abstract class AskarBaseWallet implements Wallet {
       if (!isError(error)) {
         throw new CredoError('Attempted to throw error, but it was not of type Error', { cause: error })
       }
-      throw new WalletError(`Error signing data with verkey ${key.publicKeyBase58}. ${error.message}`, { cause: error })
+      throw new WalletError(`Error signing data with key associated with ${key.publicKeyBase58}. ${error.message}`, {
+        cause: error,
+      })
     } finally {
       askarKey?.handle.free()
     }
