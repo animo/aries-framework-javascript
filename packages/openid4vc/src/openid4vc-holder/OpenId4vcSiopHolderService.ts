@@ -32,7 +32,7 @@ import {
   parseDid,
   TypedArrayEncoder,
   W3cJsonLdVerifiablePresentation,
-  W3cJwtVerifiablePresentation
+  W3cJwtVerifiablePresentation,
 } from '@credo-ts/core'
 import {
   fetchEntityConfiguration as federationFetchEntityConfiguration,

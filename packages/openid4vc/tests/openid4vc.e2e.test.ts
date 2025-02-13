@@ -1,8 +1,15 @@
-import type { AuthorizationServerMetadata } from '@animo-id/oauth2'
-import type { DcqlQuery, DifPresentationExchangeDefinitionV2, JwkJson, Mdoc, MdocDeviceResponse, SdJwtVc } from '@credo-ts/core'
+import type { AgentType, TenantType } from './utils'
 import type { OpenId4VciSignMdocCredentials } from '../src'
 import type { OpenId4VciCredentialBindingResolver } from '../src/openid4vc-holder'
-import type { AgentType, TenantType } from './utils'
+import type { AuthorizationServerMetadata } from '@animo-id/oauth2'
+import type {
+  DcqlQuery,
+  DifPresentationExchangeDefinitionV2,
+  JwkJson,
+  Mdoc,
+  MdocDeviceResponse,
+  SdJwtVc,
+} from '@credo-ts/core'
 
 import {
   calculateJwkThumbprint,
@@ -1952,7 +1959,7 @@ describe('OpenId4Vc', () => {
       throw new Error('Presentation exchange not defined')
     }
 
-    const selectedCredentials = holder.agent.modules.openId4VcHolder.selectCredentialsForRequest(
+    const selectedCredentials = holder.agent.modules.openId4VcHolder.selectCredentialsForPresentationExchangeRequest(
       resolvedAuthorizationRequest.presentationExchange.credentialsForRequest
     )
 

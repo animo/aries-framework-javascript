@@ -13,7 +13,7 @@ import type {
   SigningProviderRegistry,
   WalletDirectEncryptCompactJwtEcdhEsOptions,
 } from '@credo-ts/core'
-import type { Session } from '@hyperledger/aries-askar-shared'
+import type { Session } from '@openwallet-foundation/askar-shared'
 
 import {
   WalletKeyExistsError,
@@ -28,18 +28,16 @@ import {
   KeyBackend,
   KeyType,
   utils,
-  expandIfPossible,
 } from '@credo-ts/core'
 import {
   CryptoBox,
   Store,
   Key as AskarKey,
-  keyAlgFromString,
+  keyAlgorithmFromString,
   EcdhEs,
-  KeyAlgs,
+  KeyAlgorithm,
   Jwk,
-} from '@hyperledger/aries-askar-shared'
-import BigNumber from 'bn.js'
+} from '@openwallet-foundation/askar-shared'
 
 import { importSecureEnvironment } from '../secureEnvironment'
 import {
@@ -167,7 +165,7 @@ export abstract class AskarBaseWallet implements Wallet {
         isKeyTypeSupportedByAskarForPurpose(keyType, AskarKeyTypePurpose.KeyManagement) &&
         keyBackend === KeyBackend.Software
       ) {
-        const algorithm = keyAlgFromString(keyType)
+        const algorithm = keyAlgorithmFromString(keyType)
 
         // Create key
         let key: AskarKey | undefined
@@ -182,7 +180,7 @@ export abstract class AskarBaseWallet implements Wallet {
           // This will be fixed once we use the new 'using' syntax
           key = _key
 
-          const keyPublicBytes = expandIfPossible(key.publicBytes, keyType)
+          const keyPublicBytes = new Key(key.publicBytes, keyType).publicKey
 
           // Store key
           await this.withSession((session) =>
@@ -209,7 +207,7 @@ export abstract class AskarBaseWallet implements Wallet {
         await secureEnvironment.generateKeypair(kid)
         const compressedPublicKeyBytes = await secureEnvironment.getPublicBytesForKeyId(kid)
 
-        const publicKeyBytes = expandIfPossible(compressedPublicKeyBytes, keyType)
+        const publicKeyBytes = new Key(compressedPublicKeyBytes, keyType).publicKey
         const publicKeyBase58 = TypedArrayEncoder.toBase58(publicKeyBytes)
 
         await this.storeSecureEnvironmentKeyById({
@@ -274,7 +272,7 @@ export abstract class AskarBaseWallet implements Wallet {
         if (keyPair && isKeyTypeSupportedByAskarForPurpose(keyPair.keyType, AskarKeyTypePurpose.KeyManagement)) {
           const _askarKey = AskarKey.fromSecretBytes({
             secretKey: TypedArrayEncoder.fromBase58(keyPair.privateKeyBase58),
-            algorithm: keyAlgFromString(keyPair.keyType),
+            algorithm: keyAlgorithmFromString(keyPair.keyType),
           })
           askarKey = _askarKey
 
@@ -314,7 +312,7 @@ export abstract class AskarBaseWallet implements Wallet {
           (keyPair
             ? AskarKey.fromSecretBytes({
                 secretKey: TypedArrayEncoder.fromBase58(keyPair.privateKeyBase58),
-                algorithm: keyAlgFromString(keyPair.keyType),
+                algorithm: keyAlgorithmFromString(keyPair.keyType),
               })
             : undefined)
 
@@ -352,9 +350,12 @@ export abstract class AskarBaseWallet implements Wallet {
       if (!isError(error)) {
         throw new CredoError('Attempted to throw error, but it was not of type Error', { cause: error })
       }
-      throw new WalletError(`Error signing data with key associated with ${key.publicKeyBase58}. ${error.message}`, {
-        cause: error,
-      })
+      throw new WalletError(
+        `Error signing data with key associated with publicKeyBase58 ${key.publicKeyBase58}. ${error.message}`,
+        {
+          cause: error,
+        }
+      )
     } finally {
       askarKey?.handle.free()
     }
@@ -381,7 +382,7 @@ export abstract class AskarBaseWallet implements Wallet {
         }
 
         askarKey = AskarKey.fromPublicBytes({
-          algorithm: keyAlgFromString(key.keyType),
+          algorithm: keyAlgorithmFromString(key.keyType),
           publicKey: key.publicKey,
         })
         const verified = askarKey.verifySignature({ message: data as Buffer, signature })
@@ -494,10 +495,10 @@ export abstract class AskarBaseWallet implements Wallet {
       )
     }
 
-    const encAlg = encryptionAlgorithm === 'A256GCM' ? KeyAlgs.AesA256Gcm : KeyAlgs.AesA128CbcHs256
+    const encAlg = encryptionAlgorithm === 'A256GCM' ? KeyAlgorithm.AesA256Gcm : KeyAlgorithm.AesA128CbcHs256
 
     // Create ephemeral key
-    const ephemeralKey = AskarKey.generate(keyAlgFromString(recipientKey.keyType))
+    const ephemeralKey = AskarKey.generate(keyAlgorithmFromString(recipientKey.keyType))
 
     const _header = {
       ...header,
@@ -517,11 +518,11 @@ export abstract class AskarBaseWallet implements Wallet {
     })
 
     const { ciphertext, tag, nonce } = ecdh.encryptDirect({
-      encAlg,
+      encryptionAlgorithm: encAlg,
       ephemeralKey,
       message: Uint8Array.from(data),
       recipientKey: AskarKey.fromPublicBytes({
-        algorithm: keyAlgFromString(recipientKey.keyType),
+        algorithm: keyAlgorithmFromString(recipientKey.keyType),
         publicKey: recipientKey.publicKey,
       }),
       // NOTE: aad is bytes of base64url encoded string. It SHOULD NOT be decoded as base64
@@ -572,7 +573,7 @@ export abstract class AskarBaseWallet implements Wallet {
       throw new WalletError('Key entry not found')
     }
 
-    const encAlg = header.enc === 'A256GCM' ? KeyAlgs.AesA256Gcm : KeyAlgs.AesA128CbcHs256
+    const encAlg = header.enc === 'A256GCM' ? KeyAlgorithm.AesA256Gcm : KeyAlgorithm.AesA128CbcHs256
     const ecdh = new EcdhEs({
       algId: Uint8Array.from(Buffer.from(header.enc)),
       apu: header.apu ? Uint8Array.from(TypedArrayEncoder.fromBase64(header.apu)) : Uint8Array.from([]),
@@ -582,7 +583,7 @@ export abstract class AskarBaseWallet implements Wallet {
     const plaintext = ecdh.decryptDirect({
       nonce: TypedArrayEncoder.fromBase64(encodedIv),
       ciphertext: TypedArrayEncoder.fromBase64(encodedCiphertext),
-      encAlg,
+      encryptionAlgorithm: encAlg,
       ephemeralKey: Jwk.fromJson(header.epk),
       recipientKey: askarKey,
       tag: TypedArrayEncoder.fromBase64(encodedTag),
@@ -597,7 +598,7 @@ export abstract class AskarBaseWallet implements Wallet {
     try {
       // generate an 80-bit nonce suitable for AnonCreds proofs
       const nonce = CryptoBox.randomNonce().slice(0, 10)
-      return new BigNumber(nonce).toString()
+      return nonce.reduce((acc, byte) => (acc << 8n) | BigInt(byte), 0n).toString()
     } catch (error) {
       if (!isError(error)) {
         throw new CredoError('Attempted to throw error, but it was not of type Error', { cause: error })

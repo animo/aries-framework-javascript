@@ -769,7 +769,6 @@ export class OpenId4VcSiopVerifierService {
                       // TODO: could have some duplication but not a big issue
                     })) ?? x509Config.trustedCertificates
                   )
-
                 })
               )
             )

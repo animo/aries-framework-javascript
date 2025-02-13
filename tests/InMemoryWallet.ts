@@ -8,13 +8,10 @@ import type {
   Wallet,
 } from '@credo-ts/core'
 
-import { CryptoBox, Store, Key as AskarKey, keyAlgFromString } from '@hyperledger/aries-askar-nodejs'
-import BigNumber from 'bn.js'
+import { CryptoBox, Store, Key as AskarKey, keyAlgorithmFromString } from '@openwallet-foundation/askar-nodejs'
 
 import { convertToAskarKeyBackend } from '../packages/askar/src/utils/askarKeyBackend'
 import { didcommV1Pack, didcommV1Unpack } from '../packages/askar/src/wallet/didcommV1'
-import { expandIfPossible } from '../packages/core/src/crypto/jose/jwk/ecCompression'
-
 import {
   JsonEncoder,
   WalletNotFoundError,
@@ -28,7 +25,7 @@ import {
   Key,
   TypedArrayEncoder,
   KeyBackend,
-} from '@credo-ts/core'
+} from '../packages/core'
 
 const inMemoryWallets: InMemoryWallets = {}
 
@@ -172,7 +169,7 @@ export class InMemoryWallet implements Wallet {
         throw new WalletError(`Unsupported key type: '${keyType}'`)
       }
 
-      const algorithm = keyAlgFromString(keyType)
+      const algorithm = keyAlgorithmFromString(keyType)
 
       // Create key
       let key: AskarKey | undefined
@@ -186,7 +183,8 @@ export class InMemoryWallet implements Wallet {
         const keyPublicBytes = key.publicBytes
 
         // Store key
-        this.getInMemoryKeys()[TypedArrayEncoder.toBase58(expandIfPossible(keyPublicBytes, keyType))] = {
+        const _key = new Key(keyPublicBytes, keyType)
+        this.getInMemoryKeys()[TypedArrayEncoder.toBase58(_key.publicKey)] = {
           publicKeyBytes: keyPublicBytes,
           secretKeyBytes: key.secretBytes,
           keyType,
@@ -229,7 +227,7 @@ export class InMemoryWallet implements Wallet {
     try {
       const inMemoryKey = this.getInMemoryKeys()[key.publicKeyBase58]
       askarKey = AskarKey.fromSecretBytes({
-        algorithm: keyAlgFromString(inMemoryKey.keyType),
+        algorithm: keyAlgorithmFromString(inMemoryKey.keyType),
         secretKey: inMemoryKey.secretKeyBytes,
       })
 
@@ -261,7 +259,7 @@ export class InMemoryWallet implements Wallet {
     let askarKey: AskarKey | undefined
     try {
       askarKey = AskarKey.fromPublicBytes({
-        algorithm: keyAlgFromString(key.keyType),
+        algorithm: keyAlgorithmFromString(key.keyType),
         publicKey: key.compressedPublicKey,
       })
       return askarKey.verifySignature({ message: data as Buffer, signature })
@@ -291,7 +289,7 @@ export class InMemoryWallet implements Wallet {
 
     const askarSenderKey = senderKey
       ? AskarKey.fromSecretBytes({
-          algorithm: keyAlgFromString(senderKey.keyType),
+          algorithm: keyAlgorithmFromString(senderKey.keyType),
           secretKey: senderKey.secretKeyBytes,
         })
       : undefined
@@ -319,7 +317,7 @@ export class InMemoryWallet implements Wallet {
       const recipientKey = this.getInMemoryKeys()[recipientKid]
       const recipientAskarKey = recipientKey
         ? AskarKey.fromSecretBytes({
-            algorithm: keyAlgFromString(recipientKey.keyType),
+            algorithm: keyAlgorithmFromString(recipientKey.keyType),
             secretKey: recipientKey.secretKeyBytes,
           })
         : undefined
@@ -340,7 +338,7 @@ export class InMemoryWallet implements Wallet {
     try {
       // generate an 80-bit nonce suitable for AnonCreds proofs
       const nonce = CryptoBox.randomNonce().slice(0, 10)
-      return new BigNumber(nonce).toString()
+      return nonce.reduce((acc, byte) => (acc << 8n) | BigInt(byte), 0n).toString()
     } catch (error) {
       if (!isError(error)) {
         throw new CredoError('Attempted to throw error, but it was not of type Error', { cause: error })

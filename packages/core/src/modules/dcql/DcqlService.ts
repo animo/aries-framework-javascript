@@ -70,7 +70,10 @@ export class DcqlService {
     // query the wallet ourselves first to avoid the need to query the pex library for all
     // credentials for every proof request
     const sdJwtVctValues = dcqlQuery.credentials
-      .filter((credentialQuery) => credentialQuery.format === 'vc+sd-jwt')
+      .filter(
+        (credentialQuery): credentialQuery is typeof credentialQuery & { format: 'vc+sd-jwt' } =>
+          credentialQuery.format === 'vc+sd-jwt'
+      )
       .flatMap((c) => c.meta?.vct_values)
 
     const allSdJwtVcQueriesSpecifyDoctype = sdJwtVctValues.every((vct) => vct)
