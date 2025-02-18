@@ -431,8 +431,8 @@ importers:
   packages/core:
     dependencies:
       '@animo-id/mdoc':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.4.0
+        version: 0.4.0
       '@animo-id/pex':
         specifier: 4.1.1-alpha.0
         version: 4.1.1-alpha.0
@@ -521,8 +521,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       ec-compression:
-        specifier: 0.0.1-alpha.9
-        version: 0.0.1-alpha.9
+        specifier: 0.0.1-alpha.10
+        version: 0.0.1-alpha.10
       lru_map:
         specifier: ^0.4.1
         version: 0.4.1
@@ -974,8 +974,8 @@ packages:
       react: '*'
       react-native: '*'
 
-  '@animo-id/mdoc@0.3.0':
-    resolution: {integrity: sha512-igpkhrmUbH6VEm0yoKmLyHS3yWdPp2rzdAmBz43Isqot5J5RePM8GFLxi7O0svGYBumoduS4LKddXSqmHNp7zQ==}
+  '@animo-id/mdoc@0.4.0':
+    resolution: {integrity: sha512-ziuaAn4MnocSwoGZzKbgDB3g5ohfl79USR8Ly/uGImPRdZ6qxaB/cqO3dP0162PhKFbWsywgsgpghCiOeYoVBA==}
 
   '@animo-id/oauth2-utils@0.1.4':
     resolution: {integrity: sha512-JUIshkNCiX7myPwdiE+Da/g77OjsxZreezmfXWBSWOgCOZrnQX+t5vkhpe6Jc6DRh40Y8r9Fa1AesV0vtVpUMg==}
@@ -4249,8 +4249,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  ec-compression@0.0.1-alpha.9:
-    resolution: {integrity: sha512-x0U9mYW69oBMM/XpteYAm9BL7/hbJhIzCmj9LTdQyBbfi5SbOFeZqGCGf8bNLmM22cwWmbXvQ5QoOqTKeFOBng==}
+  ec-compression@0.0.1-alpha.10:
+    resolution: {integrity: sha512-40i890RKwkaxUqAI8XZkELoKWhQS4VDfHU0D0lYwrFjfA7vtUZWaCNCbpoGwCMZqrPrWGfXqej76/N44kVKxMg==}
 
   ed25519-signature-2018-context@1.1.0:
     resolution: {integrity: sha512-ppDWYMNwwp9bploq0fS4l048vHIq41nWsAbPq6H4mNVx9G/GxW3fwg4Ln0mqctP13MoEpREK7Biz8TbVVdYXqA==}
@@ -8030,7 +8030,7 @@ snapshots:
       react: 18.3.1
       react-native: 0.71.19(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(react@18.3.1)
 
-  '@animo-id/mdoc@0.3.0':
+  '@animo-id/mdoc@0.4.0':
     dependencies:
       compare-versions: 6.1.1
 
@@ -12626,7 +12626,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  ec-compression@0.0.1-alpha.9: {}
+  ec-compression@0.0.1-alpha.10: {}
 
   ed25519-signature-2018-context@1.1.0: {}
 
