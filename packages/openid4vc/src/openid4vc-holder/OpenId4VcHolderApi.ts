@@ -1,11 +1,11 @@
 import type {
-  OpenId4VciResolvedCredentialOffer,
   OpenId4VciAuthCodeFlowOptions,
-  OpenId4VciTokenRequestOptions as OpenId4VciRequestTokenOptions,
   OpenId4VciCredentialRequestOptions as OpenId4VciRequestCredentialOptions,
-  OpenId4VciSendNotificationOptions,
+  OpenId4VciTokenRequestOptions as OpenId4VciRequestTokenOptions,
   OpenId4VciRequestTokenResponse,
+  OpenId4VciResolvedCredentialOffer,
   OpenId4VciRetrieveAuthorizationCodeUsingPresentationOptions,
+  OpenId4VciSendNotificationOptions,
 } from './OpenId4VciHolderServiceOptions'
 import type {
   OpenId4VcSiopAcceptAuthorizationRequestOptions,
@@ -14,12 +14,12 @@ import type {
 } from './OpenId4vcSiopHolderServiceOptions'
 
 import {
-  injectable,
   AgentContext,
-  DifPresentationExchangeService,
-  DifPexCredentialsForRequest,
   DcqlQueryResult,
   DcqlService,
+  DifPexCredentialsForRequest,
+  DifPresentationExchangeService,
+  injectable,
 } from '@credo-ts/core'
 
 import { OpenId4VciMetadata } from '../shared'

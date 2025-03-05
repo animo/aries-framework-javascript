@@ -9,12 +9,7 @@ import { buildDisclosureFrameForPayload } from '../sd-jwt-vc/disclosureFrame'
 import { ClaimFormat, W3cCredentialRecord, W3cCredentialRepository } from '../vc'
 
 import { DcqlError } from './DcqlError'
-import {
-  DcqlQueryResult,
-  DcqlCredentialsForRequest,
-  DcqlPresentation as DcqlPresentation,
-  DcqlEncodedPresentations,
-} from './models'
+import { DcqlCredentialsForRequest, DcqlEncodedPresentations, DcqlPresentation, DcqlQueryResult } from './models'
 import { dcqlGetPresentationsToCreate as getDcqlVcPresentationsToCreate } from './utils'
 
 /**
@@ -108,17 +103,17 @@ export class DcqlService {
           doctype: record.getTags().docType,
           namespaces: mdoc.issuerSignedNamespaces,
         } satisfies DcqlMdocCredential
-      } else if (record.type === 'SdJwtVcRecord') {
+      }
+      if (record.type === 'SdJwtVcRecord') {
         return {
           credential_format: 'vc+sd-jwt',
           vct: record.getTags().vct,
           claims: this.getSdJwtVcApi(agentContext).fromCompact(record.compactSdJwtVc)
             .prettyClaims as DcqlSdJwtVcCredential.Claims,
         } satisfies DcqlSdJwtVcCredential
-      } else {
-        // TODO:
-        throw new DcqlError('W3C credentials are not supported yet')
       }
+      // TODO:
+      throw new DcqlError('W3C credentials are not supported yet')
     })
 
     const queryResult = DcqlQuery.query(DcqlQuery.parse(dcqlQuery), dcqlCredentials)
@@ -141,9 +136,8 @@ export class DcqlService {
           }
 
           return [credential_query_id, { ...result, record: credentialRecords[result.input_credential_index] }]
-        } else {
-          return [credential_query_id, result]
         }
+        return [credential_query_id, result]
       })
     )
 

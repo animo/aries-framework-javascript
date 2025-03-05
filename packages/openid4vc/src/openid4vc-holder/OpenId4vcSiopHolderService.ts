@@ -7,32 +7,24 @@ import type {
   VerifiedAuthorizationRequest,
 } from '@sphereon/did-auth-siop'
 import type { OpenId4VcJwtIssuer, OpenId4VcJwtIssuerFederation } from '../shared'
-import type {
-  OpenId4VcSiopAcceptAuthorizationRequestOptions,
-  OpenId4VcSiopFetchEntityConfigurationOptions,
-  OpenId4VcSiopGetOpenIdProviderOptions,
-  OpenId4VcSiopResolveAuthorizationRequestOptions,
-  OpenId4VcSiopResolvedAuthorizationRequest,
-  OpenId4VcSiopResolveTrustChainsOptions,
-} from './OpenId4vcSiopHolderServiceOptions'
 
 import {
-  asArray,
   Buffer,
   CredoError,
   DcqlService,
   DifPresentationExchangeService,
   DifPresentationExchangeSubmissionLocation,
-  getJwkFromJson,
   Hasher,
-  injectable,
   JwsService,
   KeyType,
   MdocDeviceResponse,
-  parseDid,
   TypedArrayEncoder,
   W3cJsonLdVerifiablePresentation,
   W3cJwtVerifiablePresentation,
+  asArray,
+  getJwkFromJson,
+  injectable,
+  parseDid,
 } from '@credo-ts/core'
 import {
   fetchEntityConfiguration as federationFetchEntityConfiguration,
@@ -42,6 +34,14 @@ import { OP, ResponseIss, ResponseMode, ResponseType, SupportedVersion, VPTokenL
 
 import { getSphereonVerifiablePresentation } from '../shared/transform'
 import { getCreateJwtCallback, getVerifyJwtCallback, openIdTokenIssuerToJwtIssuer } from '../shared/utils'
+import {
+  OpenId4VcSiopAcceptAuthorizationRequestOptions,
+  OpenId4VcSiopFetchEntityConfigurationOptions,
+  OpenId4VcSiopGetOpenIdProviderOptions,
+  OpenId4VcSiopResolveAuthorizationRequestOptions,
+  OpenId4VcSiopResolveTrustChainsOptions,
+  OpenId4VcSiopResolvedAuthorizationRequest,
+} from './OpenId4vcSiopHolderServiceOptions'
 
 @injectable()
 export class OpenId4VcSiopHolderService {
@@ -139,9 +139,8 @@ export class OpenId4VcSiopHolderService {
 
     const wantsIdToken = await authorizationRequest.authorizationRequest.containsResponseType(ResponseType.ID_TOKEN)
 
-    const responseMode: string | undefined = await authorizationRequest.authorizationRequest.getMergedProperty(
-      'response_mode'
-    )
+    const responseMode: string | undefined =
+      await authorizationRequest.authorizationRequest.getMergedProperty('response_mode')
     const authorizationResponseNonce =
       // In case we do not use JARM, we set the authorization response nonce to an empty string
       // to allow mDOC without JARM

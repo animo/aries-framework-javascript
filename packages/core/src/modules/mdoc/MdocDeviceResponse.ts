@@ -1,28 +1,28 @@
+import type { IssuerSignedDocument, PresentationDefinition } from '@animo-id/mdoc'
+import type { InputDescriptorV2 } from '@sphereon/pex-models'
+import type { AgentContext } from '../../agent'
+import type { JwkJson } from '../../crypto'
+import type { DifPresentationExchangeDefinition } from '../dif-presentation-exchange'
 import type {
   MdocDcqlDeviceResponseOpenId4VpOptions,
-  MdocPexDeviceResponseOpenId4VpOptions,
   MdocDeviceResponseOptions,
   MdocDeviceResponseVerifyOptions,
   MdocDocRequest,
   MdocOpenId4VpSessionTranscriptOptions,
+  MdocPexDeviceResponseOpenId4VpOptions,
 } from './MdocOptions'
-import type { AgentContext } from '../../agent'
-import type { JwkJson } from '../../crypto'
-import type { DifPresentationExchangeDefinition } from '../dif-presentation-exchange'
-import type { IssuerSignedDocument, PresentationDefinition } from '@animo-id/mdoc'
-import type { InputDescriptorV2 } from '@sphereon/pex-models'
 
 import {
-  cborEncode,
   COSEKey,
   DeviceRequest,
   DeviceResponse,
   MDoc,
-  limitDisclosureToInputDescriptor as mdocLimitDisclosureToInputDescriptor,
   MDocStatus,
+  Verifier,
+  cborEncode,
+  limitDisclosureToInputDescriptor as mdocLimitDisclosureToInputDescriptor,
   parseDeviceResponse,
   parseIssuerSigned,
-  Verifier,
 } from '@animo-id/mdoc'
 
 import { getJwkFromJson } from '../../crypto'
@@ -36,11 +36,14 @@ import { TypedArrayEncoder } from './../../utils'
 import { Mdoc } from './Mdoc'
 import { getMdocContext } from './MdocContext'
 import { MdocError } from './MdocError'
-import { nameSpacesRecordToMap } from './mdocUtil'
 import { isMdocSupportedSignatureAlgorithm, mdocSupporteSignatureAlgorithms } from './mdocSupportedAlgs'
+import { nameSpacesRecordToMap } from './mdocUtil'
 
 export class MdocDeviceResponse {
-  private constructor(public base64Url: string, public documents: Mdoc[]) {}
+  private constructor(
+    public base64Url: string,
+    public documents: Mdoc[]
+  ) {}
 
   /**
    * claim format is convenience method added to all credential instances
@@ -59,7 +62,7 @@ export class MdocDeviceResponse {
   public static fromBase64Url(base64Url: string) {
     const parsed = parseDeviceResponse(TypedArrayEncoder.fromBase64(base64Url))
     if (parsed.status !== MDocStatus.OK) {
-      throw new MdocError(`Parsing Mdoc Device Response failed.`)
+      throw new MdocError('Parsing Mdoc Device Response failed.')
     }
 
     const documents = parsed.documents.map((doc) => {
@@ -162,7 +165,7 @@ export class MdocDeviceResponse {
   public static limitDisclosureToInputDescriptor(options: { inputDescriptor: InputDescriptorV2; mdoc: Mdoc }) {
     const { mdoc } = options
 
-    const inputDescriptor = this.assertMdocInputDescriptor(options.inputDescriptor)
+    const inputDescriptor = MdocDeviceResponse.assertMdocInputDescriptor(options.inputDescriptor)
     const _mdoc = parseIssuerSigned(TypedArrayEncoder.fromBase64(mdoc.base64Url), mdoc.docType)
 
     const disclosure = mdocLimitDisclosureToInputDescriptor(_mdoc, inputDescriptor)
@@ -197,7 +200,7 @@ export class MdocDeviceResponse {
     const combinedDeviceResponseMdoc = new MDoc()
 
     for (const issuerSignedDocument of issuerSignedDocuments) {
-      const { publicDeviceJwk, alg } = this.parseDeviceKeyFromIssuerSigned(issuerSignedDocument)
+      const { publicDeviceJwk, alg } = MdocDeviceResponse.parseDeviceKeyFromIssuerSigned(issuerSignedDocument)
       const deviceKey = issuerSignedDocument.issuerSigned.issuerAuth.decodedPayload.deviceKeyInfo?.deviceKey
       if (!deviceKey) throw new MdocError(`Device key is missing in mdoc with doctype ${issuerSignedDocument.docType}`)
 
@@ -246,7 +249,7 @@ export class MdocDeviceResponse {
     agentContext: AgentContext,
     options: MdocDcqlDeviceResponseOpenId4VpOptions
   ) {
-    return this.createOpenId4VpDeviceResponse(agentContext, {
+    return MdocDeviceResponse.createOpenId4VpDeviceResponse(agentContext, {
       ...options,
       docRequests: [options.docRequest],
       mdocs: [options.mdoc],
@@ -257,12 +260,12 @@ export class MdocDeviceResponse {
     agentContext: AgentContext,
     options: MdocPexDeviceResponseOpenId4VpOptions
   ) {
-    const presentationDefinition = this.partitionPresentationDefinition(
+    const presentationDefinition = MdocDeviceResponse.partitionPresentationDefinition(
       options.presentationDefinition
     ).mdocPresentationDefinition
     const docTypes = options.mdocs.map((mdoc) => mdoc.docType)
 
-    const { deviceResponseBase64Url } = await this.createOpenId4VpDeviceResponse(agentContext, {
+    const { deviceResponseBase64Url } = await MdocDeviceResponse.createOpenId4VpDeviceResponse(agentContext, {
       ...options,
       presentationDefinition,
     })
@@ -270,7 +273,7 @@ export class MdocDeviceResponse {
     return {
       deviceResponseBase64Url,
       presentationSubmission: MdocDeviceResponse.createPresentationSubmission({
-        id: 'MdocPresentationSubmission ' + uuid(),
+        id: `MdocPresentationSubmission ${uuid()}`,
         presentationDefinition: {
           ...presentationDefinition,
           input_descriptors: presentationDefinition.input_descriptors.filter((i) => docTypes.includes(i.id)),
@@ -287,7 +290,7 @@ export class MdocDeviceResponse {
     const combinedDeviceResponseMdoc = new MDoc()
 
     for (const issuerSignedDocument of issuerSignedDocuments) {
-      const { publicDeviceJwk, alg } = this.parseDeviceKeyFromIssuerSigned(issuerSignedDocument)
+      const { publicDeviceJwk, alg } = MdocDeviceResponse.parseDeviceKeyFromIssuerSigned(issuerSignedDocument)
       const deviceKey = issuerSignedDocument.issuerSigned.issuerAuth.decodedPayload.deviceKeyInfo?.deviceKey
       if (!deviceKey) throw new CredoError(`Device key is missing in mdoc with doctype ${issuerSignedDocument.docType}`)
 
@@ -343,7 +346,7 @@ export class MdocDeviceResponse {
         )
       )
         .filter((c): c is string[] => c !== undefined)
-        .flatMap((c) => c)
+        .flat()
     }
 
     if (!trustedCertificates) {

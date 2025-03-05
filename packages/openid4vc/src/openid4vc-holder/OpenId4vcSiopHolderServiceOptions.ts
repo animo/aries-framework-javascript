@@ -1,16 +1,16 @@
 import type {
-  OpenId4VcJwtIssuer,
-  OpenId4VcSiopVerifiedAuthorizationRequest,
-  OpenId4VcJwtIssuerFederation,
-} from '../shared'
-import type {
+  DcqlCredentialsForRequest,
+  DcqlQueryResult,
   DifPexCredentialsForRequest,
   DifPexInputDescriptorToCredentials,
   DifPresentationExchangeDefinition,
   EncodedX509Certificate,
-  DcqlQueryResult,
-  DcqlCredentialsForRequest,
 } from '@credo-ts/core'
+import type {
+  OpenId4VcJwtIssuer,
+  OpenId4VcJwtIssuerFederation,
+  OpenId4VcSiopVerifiedAuthorizationRequest,
+} from '../shared'
 
 export interface OpenId4VcSiopResolvedAuthorizationRequest {
   /**

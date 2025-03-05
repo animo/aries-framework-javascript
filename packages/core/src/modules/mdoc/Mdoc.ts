@@ -1,7 +1,7 @@
-import type { MdocSignOptions, MdocNameSpaces, MdocVerifyOptions } from './MdocOptions'
+import type { IssuerSignedDocument } from '@animo-id/mdoc'
 import type { AgentContext } from '../../agent'
 import type { JwkJson, Key } from '../../crypto'
-import type { IssuerSignedDocument } from '@animo-id/mdoc'
+import type { MdocNameSpaces, MdocSignOptions, MdocVerifyOptions } from './MdocOptions'
 
 import {
   COSEKey,
@@ -13,7 +13,8 @@ import {
   parseIssuerSigned,
 } from '@animo-id/mdoc'
 
-import { getJwkFromJson, getJwkFromKey, JwaSignatureAlgorithm } from '../../crypto'
+import { getJwkFromJson } from '../../crypto'
+import { JwaSignatureAlgorithm, getJwkFromKey } from '../../crypto'
 import { ClaimFormat } from '../vc'
 import { X509Certificate, X509ModuleConfig } from '../x509'
 
@@ -53,8 +54,6 @@ export class Mdoc {
   }
 
   public static fromIssuerSignedDocument(issuerSignedBase64Url: string, expectedDocType?: string): Mdoc {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
     return new Mdoc(parseIssuerSigned(TypedArrayEncoder.fromBase64(issuerSignedBase64Url), expectedDocType))
   }
 
@@ -63,8 +62,6 @@ export class Mdoc {
     deviceSignedBase64Url: string,
     expectedDocType?: string
   ): Mdoc {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
     return new Mdoc(
       parseDeviceSigned(
         TypedArrayEncoder.fromBase64(deviceSignedBase64Url),

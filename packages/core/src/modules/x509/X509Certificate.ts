@@ -1,21 +1,21 @@
+import type { AgentContext } from '../../agent'
 import type { X509CreateCertificateOptions } from './X509ServiceOptions'
 import type { IssuerAlternativeNameExtension } from './extensions'
-import type { AgentContext } from '../../agent'
 
 import { AsnParser } from '@peculiar/asn1-schema'
 import {
+  SubjectPublicKeyInfo,
   id_ce_authorityKeyIdentifier,
   id_ce_extKeyUsage,
   id_ce_issuerAltName,
   id_ce_keyUsage,
   id_ce_subjectAltName,
   id_ce_subjectKeyIdentifier,
-  SubjectPublicKeyInfo,
 } from '@peculiar/asn1-x509'
 import * as x509 from '@peculiar/x509'
 
 import { Key } from '../../crypto/Key'
-import { CredoWebCryptoKey, CredoWebCrypto } from '../../crypto/webcrypto'
+import { CredoWebCrypto, CredoWebCryptoKey } from '../../crypto/webcrypto'
 import { credoKeyTypeIntoCryptoKeyAlgorithm, spkiAlgorithmIntoCredoKeyType } from '../../crypto/webcrypto/utils'
 import { TypedArrayEncoder } from '../../utils'
 
@@ -77,12 +77,12 @@ export class X509Certificate {
 
   public static fromRawCertificate(rawCertificate: Uint8Array): X509Certificate {
     const certificate = new x509.X509Certificate(rawCertificate)
-    return this.parseCertificate(certificate)
+    return X509Certificate.parseCertificate(certificate)
   }
 
   public static fromEncodedCertificate(encodedCertificate: string): X509Certificate {
     const certificate = new x509.X509Certificate(encodedCertificate)
-    return this.parseCertificate(certificate)
+    return X509Certificate.parseCertificate(certificate)
   }
 
   private static parseCertificate(certificate: x509.X509Certificate): X509Certificate {
@@ -156,6 +156,7 @@ export class X509Certificate {
     return keyIds?.[0]
   }
 
+  // biome-ignore lint/suspicious/useGetterReturn: <explanation>
   public get keyUsage() {
     const keyUsages = this.getMatchingExtensions<x509.KeyUsagesExtension>(id_ce_keyUsage)?.map((e) => e.usages)
 

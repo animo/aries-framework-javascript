@@ -1,4 +1,3 @@
-import type { OpenId4VcIssuerX5c, OpenId4VcJwtIssuer, OpenId4VcJwtIssuerFederation } from './models'
 import type {
   AgentContext,
   DidPurpose,
@@ -9,6 +8,8 @@ import type {
 } from '@credo-ts/core'
 import type { VerifyJwtCallback, JwtIssuerWithContext as VpJwtIssuerWithContext } from '@sphereon/did-auth-siop'
 import type { CreateJwtCallback, DPoPJwtIssuerWithContext, JwtIssuer } from '@sphereon/oid4vc-common'
+import type { OpenId4VcJwtIssuerFederation } from './models'
+import type { OpenId4VcIssuerX5c, OpenId4VcJwtIssuer } from './models'
 
 import {
   CredoError,
@@ -90,7 +91,8 @@ export function getVerifyJwtCallback(
         trustedCertificates: [],
       })
       return res.isValid
-    } else if (jwtVerifier.method === 'x5c' || jwtVerifier.method === 'jwk') {
+    }
+    if (jwtVerifier.method === 'x5c' || jwtVerifier.method === 'jwk') {
       if (jwtVerifier.type === 'request-object') {
         const x509Config = agentContext.dependencyManager.resolve(X509ModuleConfig)
         const certificateChain = jwt.header.x5c?.map((cert) => X509Certificate.fromEncodedCertificate(cert))
@@ -189,7 +191,6 @@ export function getCreateJwtCallback(
 
       return jws
     }
-
     if (jwtIssuer.method === 'jwk') {
       if (!jwtIssuer.jwk.kty) {
         throw new CredoError('Missing required key type (kty) in the jwk.')
@@ -220,13 +221,13 @@ export function getCreateJwtCallback(
     if (jwtIssuer.method === 'custom') {
       // TODO: This could be used as the issuer and verifier. Based on that we need to search for a jwk in the entity configuration
       const { options } = jwtIssuer
-      if (!options) throw new CredoError(`Custom jwtIssuer must have options defined.`)
+      if (!options) throw new CredoError('Custom jwtIssuer must have options defined.')
       if (!options.method) throw new CredoError(`Custom jwtIssuer's options must have a 'method' property defined.`)
       if (options.method !== 'openid-federation')
         throw new CredoError(
           `Custom jwtIssuer's options 'method' property must be 'openid-federation' when using the 'custom' method.`
         )
-      if (!options.entityId) throw new CredoError(`Custom jwtIssuer must have entityId defined.`)
+      if (!options.entityId) throw new CredoError('Custom jwtIssuer must have entityId defined.')
       if (typeof options.entityId !== 'string') throw new CredoError(`Custom jwtIssuer's entityId must be a string.`)
 
       const { entityId } = options

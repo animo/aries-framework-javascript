@@ -1,6 +1,3 @@
-import type { AgentType, TenantType } from './utils'
-import type { OpenId4VciSignMdocCredentials } from '../src'
-import type { OpenId4VciCredentialBindingResolver } from '../src/openid4vc-holder'
 import type { AuthorizationServerMetadata } from '@animo-id/oauth2'
 import type {
   DcqlQuery,
@@ -10,12 +7,15 @@ import type {
   MdocDeviceResponse,
   SdJwtVc,
 } from '@credo-ts/core'
+import type { OpenId4VciSignMdocCredentials } from '../src'
+import type { OpenId4VciCredentialBindingResolver } from '../src/openid4vc-holder'
+import type { AgentType, TenantType } from './utils'
 
 import {
-  calculateJwkThumbprint,
-  clientAuthenticationNone,
   HashAlgorithm,
   Oauth2AuthorizationServer,
+  calculateJwkThumbprint,
+  clientAuthenticationNone,
   preAuthorizedCodeGrantIdentifier,
 } from '@animo-id/oauth2'
 import { AuthorizationFlow } from '@animo-id/oid4vci'
@@ -24,8 +24,6 @@ import {
   CredoError,
   DidsApi,
   DifPresentationExchangeService,
-  getJwkFromKey,
-  getKeyFromVerificationMethod,
   Hasher,
   JsonEncoder,
   JwaSignatureAlgorithm,
@@ -35,15 +33,16 @@ import {
   JwtPayload,
   KeyType,
   MdocRecord,
-  parseDid,
   SdJwtVcRecord,
   W3cCredential,
   W3cCredentialSubject,
-  w3cDate,
   W3cIssuer,
   X509Module,
   X509ModuleConfig,
   X509Service,
+  getJwkFromKey,
+  getKeyFromVerificationMethod,
+  parseDid,
 } from '@credo-ts/core'
 import { ResponseMode } from '@sphereon/did-auth-siop'
 import express, { type Express } from 'express'
@@ -143,7 +142,8 @@ describe('OpenId4Vc', () => {
                   disclosureFrame: { _sd: ['university', 'degree'] },
                 })),
               }
-            } else if (credentialRequest.format === 'mso_mdoc') {
+            }
+            if (credentialRequest.format === 'mso_mdoc') {
               const trustedCertificates = agentContext.dependencyManager.resolve(X509ModuleConfig).trustedCertificates
               if (trustedCertificates?.length !== 1) {
                 throw new Error('Expected exactly one trusted certificate. Received 0.')
@@ -163,9 +163,8 @@ describe('OpenId4Vc', () => {
                   },
                 })),
               } satisfies OpenId4VciSignMdocCredentials
-            } else {
-              throw new Error('Invalid request')
             }
+            throw new Error('Invalid request')
           },
         }),
         askar: new AskarModule(askarModuleConfig),
@@ -314,9 +313,8 @@ describe('OpenId4Vc', () => {
 
     const holderTenant1 = await holder.agent.modules.tenants.getTenantAgent({ tenantId: holder1.tenantId })
 
-    const resolvedCredentialOffer1 = await holderTenant1.modules.openId4VcHolder.resolveCredentialOffer(
-      credentialOffer1
-    )
+    const resolvedCredentialOffer1 =
+      await holderTenant1.modules.openId4VcHolder.resolveCredentialOffer(credentialOffer1)
 
     expect(resolvedCredentialOffer1.metadata.credentialIssuer?.dpop_signing_alg_values_supported).toEqual(['EdDSA'])
     expect(resolvedCredentialOffer1.offeredCredentialConfigurations).toEqual({
@@ -407,9 +405,8 @@ describe('OpenId4Vc', () => {
     const sdJwtVcTenant1 = holderTenant1.sdJwtVc.fromCompact(compactSdJwtVcTenant1)
     expect(sdJwtVcTenant1.payload.vct).toEqual('UniversityDegreeCredential')
 
-    const resolvedCredentialOffer2 = await holderTenant1.modules.openId4VcHolder.resolveCredentialOffer(
-      credentialOffer2
-    )
+    const resolvedCredentialOffer2 =
+      await holderTenant1.modules.openId4VcHolder.resolveCredentialOffer(credentialOffer2)
 
     await waitForCredentialIssuanceSessionRecordSubject(issuer.replaySubject, {
       state: OpenId4VcIssuanceSessionState.OfferUriRetrieved,
@@ -486,7 +483,7 @@ describe('OpenId4Vc', () => {
         verifyJwt: () => {
           throw new Error('not implemented')
         },
-        signJwt: async (signer, { header, payload }) => {
+        signJwt: async (_signer, { header, payload }) => {
           const jwsService = issuer.agent.dependencyManager.resolve(JwsService)
           return jwsService.createJwsCompact(issuer.agent.context, {
             key: authorizationServerKey,
@@ -502,7 +499,7 @@ describe('OpenId4Vc', () => {
       },
     })
     const app = express()
-    app.get('/.well-known/oauth-authorization-server', (req, res) =>
+    app.get('/.well-known/oauth-authorization-server', (_req, res) =>
       res.json({
         jwks_uri: 'http://localhost:4747/jwks.json',
         issuer: 'http://localhost:4747',
@@ -510,14 +507,14 @@ describe('OpenId4Vc', () => {
         authorization_endpoint: 'http://localhost:4747/authorize',
       } satisfies AuthorizationServerMetadata)
     )
-    app.get('/jwks.json', (req, res) =>
+    app.get('/jwks.json', (_req, res) =>
       res.setHeader('Content-Type', 'application/jwk-set+json').send(
         JSON.stringify({
           keys: [{ ...authorizationServerJwk, kid: 'first' }],
         })
       )
     )
-    app.post('/token', async (req, res) =>
+    app.post('/token', async (_req, res) =>
       res.json(
         await authorizationServer.createAccessTokenResponse({
           authorizationServer: 'http://localhost:4747',
@@ -611,7 +608,7 @@ describe('OpenId4Vc', () => {
 
     const openIdVerifierTenant1 = await verifierTenant1.modules.openId4VcVerifier.createVerifier()
 
-    const { authorizationRequest: authorizationRequestUri1, verificationSession: verificationSession } =
+    const { authorizationRequest: authorizationRequestUri1, verificationSession } =
       await verifierTenant1.modules.openId4VcVerifier.createAuthorizationRequest({
         verifierId: openIdVerifierTenant1.verifierId,
         requestSigner: {
@@ -628,9 +625,8 @@ describe('OpenId4Vc', () => {
 
     await verifierTenant1.endSession()
 
-    const resolvedAuthorizationRequest = await holderTenant.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequestUri1
-    )
+    const resolvedAuthorizationRequest =
+      await holderTenant.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequestUri1)
 
     expect(resolvedAuthorizationRequest.presentationExchange).toBeUndefined()
 
@@ -749,9 +745,8 @@ describe('OpenId4Vc', () => {
     await verifierTenant1.endSession()
     await verifierTenant2.endSession()
 
-    const resolvedProofRequest1 = await holderTenant.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequestUri1
-    )
+    const resolvedProofRequest1 =
+      await holderTenant.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequestUri1)
 
     expect(resolvedProofRequest1.presentationExchange?.credentialsForRequest).toMatchObject({
       areRequirementsSatisfied: true,
@@ -775,9 +770,8 @@ describe('OpenId4Vc', () => {
       ],
     })
 
-    const resolvedProofRequest2 = await holderTenant.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequestUri2
-    )
+    const resolvedProofRequest2 =
+      await holderTenant.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequestUri2)
 
     expect(resolvedProofRequest2.presentationExchange?.credentialsForRequest).toMatchObject({
       areRequirementsSatisfied: true,
@@ -998,9 +992,8 @@ describe('OpenId4Vc', () => {
       )}`
     )
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
     expect(resolvedAuthorizationRequest.authorizationRequest.payload?.response_mode).toEqual('direct_post.jwt')
 
     expect(resolvedAuthorizationRequest.presentationExchange?.credentialsForRequest).toEqual({
@@ -1232,9 +1225,8 @@ describe('OpenId4Vc', () => {
       )}`
     )
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
 
     expect(resolvedAuthorizationRequest.presentationExchange?.credentialsForRequest).toEqual({
       areRequirementsSatisfied: true,
@@ -1506,9 +1498,8 @@ describe('OpenId4Vc', () => {
       )}`
     )
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
 
     expect(resolvedAuthorizationRequest.presentationExchange?.credentialsForRequest).toEqual({
       areRequirementsSatisfied: true,
@@ -1782,9 +1773,8 @@ describe('OpenId4Vc', () => {
     const holderTenant1 = await holder.agent.modules.tenants.getTenantAgent({ tenantId: holder1.tenantId })
     await holderTenant1.x509.setTrustedCertificates([issuerCertificatePem])
 
-    const resolvedCredentialOffer1 = await holderTenant1.modules.openId4VcHolder.resolveCredentialOffer(
-      credentialOffer1
-    )
+    const resolvedCredentialOffer1 =
+      await holderTenant1.modules.openId4VcHolder.resolveCredentialOffer(credentialOffer1)
 
     expect(resolvedCredentialOffer1.metadata.credentialIssuer?.dpop_signing_alg_values_supported).toEqual(['ES256'])
     expect(resolvedCredentialOffer1.offeredCredentialConfigurations).toEqual({
@@ -1953,9 +1943,8 @@ describe('OpenId4Vc', () => {
       presentationExchange: { definition: presentationDefinition },
     })
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
 
     if (!resolvedAuthorizationRequest.presentationExchange) {
       throw new Error('Presentation exchange not defined')
@@ -2115,9 +2104,8 @@ describe('OpenId4Vc', () => {
       )}`
     )
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
 
     expect(resolvedAuthorizationRequest.presentationExchange?.credentialsForRequest).toEqual({
       areRequirementsSatisfied: true,
@@ -2419,9 +2407,8 @@ describe('OpenId4Vc', () => {
         dcql: { query: dcqlQuery },
       })
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
 
     expect(resolvedAuthorizationRequest.dcql).toEqual({
       queryResult: {
@@ -2516,10 +2503,10 @@ describe('OpenId4Vc', () => {
     )
 
     expect(idToken).toBeUndefined()
-    const presentation = dcql?.presentation['orgeuuniversity'] as MdocDeviceResponse
+    const presentation = dcql?.presentation.orgeuuniversity as MdocDeviceResponse
     expect(presentation.documents).toHaveLength(1)
 
-    const sdJwtPresentation = dcql?.presentation['OpenBadgeCredentialDescriptor'] as SdJwtVc
+    const sdJwtPresentation = dcql?.presentation.OpenBadgeCredentialDescriptor as SdJwtVc
     expect(sdJwtPresentation.prettyClaims).toEqual({
       vct: 'OpenBadgeCredential',
       degree: 'bachelor',
@@ -2651,9 +2638,8 @@ describe('OpenId4Vc', () => {
       )}`
     )
 
-    const resolvedAuthorizationRequest = await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(
-      authorizationRequest
-    )
+    const resolvedAuthorizationRequest =
+      await holder.agent.modules.openId4VcHolder.resolveSiopAuthorizationRequest(authorizationRequest)
 
     expect(resolvedAuthorizationRequest.presentationExchange?.credentialsForRequest).toEqual({
       areRequirementsSatisfied: true,

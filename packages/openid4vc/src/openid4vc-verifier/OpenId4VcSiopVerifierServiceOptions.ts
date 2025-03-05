@@ -1,20 +1,20 @@
-import type { OpenId4VcVerificationSessionRecord, OpenId4VcVerifierRecordProps } from './repository'
+import type {
+  DcqlPresentation,
+  DcqlPresentationResult,
+  DcqlQuery,
+  DifPexPresentationWithDescriptor,
+  DifPresentationExchangeDefinition,
+  DifPresentationExchangeDefinitionV2,
+  DifPresentationExchangeSubmission,
+  VerifiablePresentation,
+} from '@credo-ts/core'
 import type {
   OpenId4VcIssuerX5c,
   OpenId4VcJwtIssuer,
   OpenId4VcSiopAuthorizationResponsePayload,
   OpenId4VcSiopIdTokenPayload,
 } from '../shared'
-import type {
-  DifPresentationExchangeDefinition,
-  DifPresentationExchangeSubmission,
-  DifPresentationExchangeDefinitionV2,
-  VerifiablePresentation,
-  DcqlQuery,
-  DcqlPresentation,
-  DifPexPresentationWithDescriptor,
-  DcqlPresentationResult,
-} from '@credo-ts/core'
+import type { OpenId4VcVerificationSessionRecord, OpenId4VcVerifierRecordProps } from './repository'
 
 export type ResponseMode = 'direct_post' | 'direct_post.jwt'
 

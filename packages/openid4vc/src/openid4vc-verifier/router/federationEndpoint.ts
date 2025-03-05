@@ -1,9 +1,9 @@
-import type { OpenId4VcVerificationRequest } from './requestContext'
-import type { Key, Buffer } from '@credo-ts/core'
+import type { Buffer, Key } from '@credo-ts/core'
 import type { RPRegistrationMetadataPayload } from '@sphereon/did-auth-siop'
-import type { Router, Response } from 'express'
+import type { Response, Router } from 'express'
+import type { OpenId4VcVerificationRequest } from './requestContext'
 
-import { getJwkFromJson, getJwkFromKey, JwsService, KeyType } from '@credo-ts/core'
+import { JwsService, KeyType, getJwkFromJson, getJwkFromKey } from '@credo-ts/core'
 import { createEntityConfiguration, createEntityStatement, fetchEntityConfiguration } from '@openid-federation/core'
 import { LanguageTagUtils, removeNullUndefined } from '@sphereon/did-auth-siop'
 
@@ -13,6 +13,7 @@ import { OpenId4VcVerifierModuleConfig } from '../OpenId4VcVerifierModuleConfig'
 
 // TODO: Add types but this function is originally from the @
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 const createRPRegistrationMetadataPayload = (opts: any): RPRegistrationMetadataPayload => {
   const rpRegistrationMetadataPayload: RPRegistrationMetadataPayload = {
     id_token_signing_alg_values_supported: opts.idTokenSigningAlgValuesSupported,
