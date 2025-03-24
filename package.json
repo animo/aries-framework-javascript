@@ -22,7 +22,8 @@
     "validate": "pnpm types:check && pnpm style:check",
     "run-mediator": "ts-node ./samples/mediator.ts",
     "release": "pnpm build && pnpm changeset publish --no-git-tag",
-    "changeset-version": "pnpm changeset version && pnpm style:fix"
+    "changeset-version": "pnpm changeset version && pnpm style:fix",
+    "update-package-names": "node update-names.js"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",
