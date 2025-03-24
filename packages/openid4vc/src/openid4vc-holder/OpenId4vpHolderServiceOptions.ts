@@ -14,6 +14,7 @@ export type ParsedTransactionDataEntry = NonNullable<ResolvedOpenid4vpAuthorizat
 
 export interface ResolveOpenId4VpAuthorizationRequestOptions {
   trustedCertificates?: EncodedX509Certificate[]
+  trustedFederationEntityIds?: string[]
   origin?: string
 }
 
@@ -111,4 +112,13 @@ export interface OpenId4VpAcceptAuthorizationRequestOptions {
    * Required in combination with the DC Api
    */
   origin?: string
+}
+
+export interface OpenId4VpResolveTrustChainsOptions {
+  entityId: string
+  trustAnchorEntityIds: [string, ...string[]]
+}
+
+export interface OpenId4VpFetchEntityConfigurationOptions {
+  entityId: string
 }
