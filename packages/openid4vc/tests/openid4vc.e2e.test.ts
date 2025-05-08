@@ -69,6 +69,7 @@ import {
   universityDegreeCredentialSdJwt2,
 } from './utilsVci'
 import { openBadgePresentationDefinition, universityDegreePresentationDefinition } from './utilsVp'
+import { randomUUID } from 'crypto'
 
 const serverPort = 1234
 const baseUrl = `http://localhost:${serverPort}`
@@ -631,6 +632,7 @@ describe('OpenId4Vc', () => {
 
     await holderTenant.w3cCredentials.storeCredential({ credential: signedCredential1 })
     await holderTenant.w3cCredentials.storeCredential({ credential: signedCredential2 })
+    const authorizationResponseRedirectUri = `https://my-website.com/${randomUUID()}`
 
     const { authorizationRequest: authorizationRequestUri1, verificationSession: verificationSession1 } =
       await verifierTenant1.modules.openId4VcVerifier.createAuthorizationRequest({
@@ -642,6 +644,7 @@ describe('OpenId4Vc', () => {
         presentationExchange: {
           definition: openBadgePresentationDefinition,
         },
+        authorizationResponseRedirectUri,
       })
 
     expect(authorizationRequestUri1).toEqual(
@@ -759,6 +762,9 @@ describe('OpenId4Vc', () => {
     })
     expect(serverResponse1).toMatchObject({
       status: 200,
+      body: {
+        redirect_uri: authorizationResponseRedirectUri,
+      },
     })
 
     // The RP MUST validate that the aud (audience) Claim contains the value of the client_id
