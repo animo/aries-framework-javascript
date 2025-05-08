@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import type { DcqlQuery, DifPresentationExchangeDefinitionV2, Mdoc, MdocDeviceResponse, SdJwtVc } from '@credo-ts/core'
 import {
   ClaimFormat,
@@ -474,6 +475,7 @@ pUGCFdfNLQIgHGSa5u5ZqUtCrnMiaEageO71rjzBlov0YUH4+6ELioY=
 
     await holderTenant.w3cCredentials.storeCredential({ credential: signedCredential1 })
     await holderTenant.w3cCredentials.storeCredential({ credential: signedCredential2 })
+    const authorizationResponseRedirectUri = `https://my-website.com/${randomUUID()}`
 
     const { authorizationRequest: authorizationRequestUri1, verificationSession: verificationSession1 } =
       await verifierTenant1.modules.openId4VcVerifier.createAuthorizationRequest({
@@ -485,6 +487,7 @@ pUGCFdfNLQIgHGSa5u5ZqUtCrnMiaEageO71rjzBlov0YUH4+6ELioY=
         presentationExchange: {
           definition: openBadgePresentationDefinition,
         },
+        authorizationResponseRedirectUri,
       })
 
     expect(authorizationRequestUri1).toEqual(
@@ -602,6 +605,9 @@ pUGCFdfNLQIgHGSa5u5ZqUtCrnMiaEageO71rjzBlov0YUH4+6ELioY=
     })
     expect(serverResponse1).toMatchObject({
       status: 200,
+      body: {
+        redirect_uri: authorizationResponseRedirectUri,
+      },
     })
 
     // The RP MUST validate that the aud (audience) Claim contains the value of the client_id
