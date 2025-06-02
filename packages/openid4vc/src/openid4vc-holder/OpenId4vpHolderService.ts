@@ -198,7 +198,7 @@ export class OpenId4VpHolderService {
     agentContext.config.logger.debug(`request '${authorizationRequest}'`)
 
     return {
-      authorizationRequestPayload: verifiedAuthorizationRequest.authorizationRequestPayload,
+      authorizationRequestPayload: verifiedAuthorizationRequest,
       transactionData: pexResult?.matchedTransactionData ?? dcqlResult?.matchedTransactionData,
       presentationExchange: pexResult?.pex,
       verifier: {
@@ -206,14 +206,6 @@ export class OpenId4VpHolderService {
         clientMetadata: client.clientMetadata,
       },
       dcql: dcqlResult?.dcql,
-      origin: options?.origin,
-      signedAuthorizationRequest: verifiedAuthorizationRequest.jar
-        ? {
-            signer: verifiedAuthorizationRequest.jar?.signer,
-            payload: verifiedAuthorizationRequest.jar.jwt.payload,
-            header: verifiedAuthorizationRequest.jar.jwt.header,
-          }
-        : undefined,
     }
   }
 
